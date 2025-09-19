@@ -25,9 +25,6 @@ const CostModeSelector = ({ value, onChange, options }) => ( <div className="fle
 const ToggleSwitch = ({ label, enabled, onChange }) => ( <div className="flex items-center justify-between bg-black/20 p-2 rounded-md h-full"> <span className="text-sm font-medium text-white/80">{label}</span> <button onClick={() => onChange(!enabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-cyan-600' : 'bg-slate-600'}`}> <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} /> </button> </div> );
 
 // #################################################################################
-// ####### COMPONENTE 1: VISUALIZADOR DE RESULTADOS #######
-// #################################################################################
-// #################################################################################
 // ####### COMPONENTE 1: VISUALIZADOR DE RESULTADOS (CORREGIDO) #######
 // #################################################################################
 const GangingOptimizerUI = ({ apiResponse, onBack, dollarRate }) => {
@@ -303,19 +300,19 @@ const adaptApiResponse = (apiResult) => {
     const adaptLayout = (layout) => {
         if (!layout) return null;
 
-        // 1. Renombrar y transformar campos clave
-        layout.layoutId = layout.layout_id;
-        layout.sheetsToPrint = layout.net_sheets;
-        layout.pressSheetSize = layout.printing_sheet;
-
-        // 2. Transformar `jobs_in_layout` de objeto a array de objetos
-        if (layout.jobs_in_layout && typeof layout.jobs_in_layout === 'object') {
+        // 1. Unificar nombres de propiedades inconsistentes (snake_case vs camelCase)
+        layout.layoutId = layout.layout_id || layout.layoutId;
+        layout.sheetsToPrint = layout.net_sheets || layout.sheetsToPrint;
+        layout.pressSheetSize = layout.printing_sheet || layout.printingSheet;
+        
+        // 2. Unificar la estructura de `jobsInLayout` para que siempre sea un Array
+        if (layout.jobs_in_layout && typeof layout.jobs_in_layout === 'object' && !Array.isArray(layout.jobs_in_layout)) {
             layout.jobsInLayout = Object.entries(layout.jobs_in_layout).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
-        } else {
-            layout.jobsInLayout = [];
+        } else if (!layout.jobsInLayout) {
+             layout.jobsInLayout = [];
         }
 
-        // 3. Normalizar 'placements' para que usen w y h, que es lo que espera el visualizador
+        // 3. Normalizar 'placements' para que usen w y h
         if (layout.placements && Array.isArray(layout.placements)) {
             layout.placements = layout.placements.map(p => ({
                 ...p,
@@ -324,15 +321,16 @@ const adaptApiResponse = (apiResult) => {
             }));
         }
 
-        // 4. Limpiar los campos originales para evitar confusiones
+        // 4. Limpiar los campos originales para evitar redundancia
         delete layout.layout_id;
         delete layout.net_sheets;
         delete layout.printing_sheet;
+        delete layout.printingSheet;
         delete layout.jobs_in_layout;
 
         return layout;
     };
-
+    
     if (apiResult.baselineSolution && apiResult.baselineSolution.layouts) {
         Object.values(apiResult.baselineSolution.layouts).forEach(adaptLayout);
     }
@@ -344,7 +342,7 @@ const adaptApiResponse = (apiResult) => {
             }
         });
     }
-
+    
     return apiResult;
 };
 
