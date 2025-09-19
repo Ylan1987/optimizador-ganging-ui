@@ -135,37 +135,6 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const adaptApiResponse = (apiResult) => {
-        const adaptLayout = (layout) => {
-            if (!layout) return null;
-            // Renombrar y transformar campos
-            layout.sheetsToPrint = layout.net_sheets;
-            layout.pressSheetSize = layout.printing_sheet;
-            layout.jobsInLayout = Object.entries(layout.jobs_in_layout || {}).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
-            
-            // Eliminar los campos antiguos para evitar confusiones
-            delete layout.net_sheets;
-            delete layout.printing_sheet;
-            delete layout.jobs_in_layout;
-
-            return layout;
-        };
-        
-        if (apiResult.baseSolution && apiResult.baseSolution.layouts) {
-            Object.values(apiResult.baseSolution.layouts).forEach(adaptLayout);
-        }
-
-        if (apiResult.gangedSolutions && Array.isArray(apiResult.gangedSolutions)) {
-            apiResult.gangedSolutions.forEach(solution => {
-                if (solution.layouts) {
-                    Object.values(solution.layouts).forEach(adaptLayout);
-                }
-            });
-        }
-        
-        return apiResult;
-    };
-
     const loadConfig = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -217,27 +186,20 @@ export default function App() {
         }
     };
 
- const handleOptimize = async (jobs) => {
+    const handleOptimize = async (jobs) => {
         setLoading(true);
-        // Limpiar el campo 'preferred' de los datos de cortes antes de enviar a la API
-        const cleanedCuts = config.cuts.map(cutGroup => ({
-            forPaperSize: cutGroup.forPaperSize,
-            sheetSizes: cutGroup.sheetSizes.map(({ width, length }) => ({ width, length }))
-        }));
-
         const apiPayload = {
             options: { timeoutSeconds: config.settings.timeoutSeconds, numberOfSolutions: config.settings.numberOfSolutions, penalties: config.settings.penalties },
             commonDetails: { dollarRate: config.settings.dollarRate },
             jobs: jobs.map(j => ({ id: j.name.replace(/\s+/g, '-').toLowerCase(), width: j.width, length: j.length, quantity: j.quantity, rotatable: j.rotatable, material: { id: j.material.name, name: j.material.name, grammage: j.material.grammage, isSpecialMaterial: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.isSpecialMaterial || false, factorySizes: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.sizes.map(s => ({width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton})) || [] }, frontInks: j.frontInks, backInks: j.backInks, isDuplex: j.backInks > 0, samePlatesForBack: j.samePlatesForBack })),
             machines: config.machines,
-            availableCuts: cleanedCuts // Usar los datos limpios
+            availableCuts: config.cuts.map(c => ({ forPaperSize: c.forPaperSize, sheetSizes: c.sheetSizes }))
         };
         try {
             const response = await fetch('https://ganging-optimizer.vercel.app/api/optimize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op' }, body: JSON.stringify(apiPayload) });
             if (!response.ok) { const errorText = await response.text(); throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`); }
             const result = await response.json();
-            const adaptedResult = adaptApiResponse(result); // ¡Aquí ocurre la magia!
-            setOptimizationResult(adaptedResult);
+            setOptimizationResult(result);
         } catch (error) { console.error("Error calling optimizer API:", error); alert("Error al llamar al optimizador: " + error.message);
         } finally { setLoading(false); }
     };
@@ -262,3 +224,4 @@ export default function App() {
     const NavItem = ({ page, label, icon: Icon }) => ( <button onClick={() => setCurrentPage(page)} className={`flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg transition-colors ${ currentPage === page ? 'bg-cyan-600/20 text-cyan-300' : 'text-gray-400 hover:bg-slate-700/50 hover:text-white'}`}> <Icon size={20} /> <span className="font-semibold">{label}</span> </button> );
     return ( <div className="bg-slate-900 text-gray-50 min-h-screen font-sans flex"> <aside className="w-64 bg-slate-800/30 border-r border-gray-700 p-4 flex flex-col"> <div className="mb-8 flex items-center gap-3"> <img src="https://i.imgur.com/r42B5p2.png" alt="Logo Diagonal" className="h-10 opacity-80"/> <div><h1 className="font-bold text-xl text-white">Optimizador</h1><p className="text-xs text-gray-400">Imprenta Diagonal</p></div> </div> <nav className="flex flex-col gap-2"> <NavItem page="cotizador" label="Cotizador" icon={Calculator} /> <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3 mt-4 mb-1">Configuración</h2> <NavItem page="maquinas" label="Máquinas" icon={Printer} /> <NavItem page="materiales" label="Materiales" icon={FileUp} /> <NavItem page="cortes" label="Cortes" icon={Scissors} /> <NavItem page="general" label="Ajustes Generales" icon={Settings} /> </nav> </aside> <main className="flex-1 overflow-y-auto bg-slate-900"> {renderPage()} </main> <style>{` .custom-select option { background-color: #1f2937; color: #F9FAFB; } `}</style> </div> );
 }
+
