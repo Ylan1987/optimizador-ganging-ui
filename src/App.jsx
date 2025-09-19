@@ -147,13 +147,7 @@ const GangingOptimizerUI = ({ apiResponse, onBack, dollarRate }) => {
         const isBase = !solution.summary;
         const totalCost = isBase ? solution.total_cost : (solution.summary ? solution.summary.gangedTotalCost : 0);
         const saving = isBase ? 0 : baseCost - totalCost;
-        const plan = useMemo(() => {
-            if (!solution || !solution.layouts) return [];
-            if (isBase) {
-                return Object.values(solution.layouts);
-            }
-            return (solution.productionPlan || []).map(item => solution.layouts[item.id]).filter(Boolean);
-        }, [solution, isBase]);
+        const plan = useMemo(() => { if (!solution || !solution.layouts) return []; if (isBase) { return Object.values(solution.layouts); } return (solution.productionPlan || []).map(item => solution.layouts[item.id]).filter(Boolean); }, [solution, isBase]);
 
         if (!plan || plan.length === 0) {
             return <div className="text-center text-gray-400 py-8">No se encontraron layouts para esta solución.</div>
