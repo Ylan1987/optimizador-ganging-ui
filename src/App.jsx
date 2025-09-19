@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Settings, Printer, Scissors, Calculator, Wand2, Loader2 } from 'lucide-react';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js';
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
@@ -170,7 +170,7 @@ export default function App() {
                 if (error) throw error;
             } else if (data.id && String(data.id).startsWith('new-')) {
                 const { id, ...insertData } = data;
-                const { error } = await supabase.from(tableName).insert([insertData]);
+                const { error } = await supabase.from(tableName).insert([insertData]).select();
                 if (error) throw error;
             } else if (tableName === 'general_settings') {
                 const { error } = await supabase.from('general_settings').update({ settings: data }).eq('id', 1);
@@ -187,12 +187,27 @@ export default function App() {
         }
     };
 
-    const handleOptimize = async (jobs) => { /* ... (código existente) ... */ };
+    const handleOptimize = async (jobs) => {
+        setLoading(true);
+        const apiPayload = {
+            options: { timeoutSeconds: config.settings.timeoutSeconds, numberOfSolutions: config.settings.numberOfSolutions, penalties: config.settings.penalties },
+            commonDetails: { dollarRate: config.settings.dollarRate },
+            jobs: jobs.map(j => ({ id: j.name.replace(/\s+/g, '-').toLowerCase(), width: j.width, length: j.length, quantity: j.quantity, rotatable: j.rotatable, material: { id: j.material.name, name: j.material.name, grammage: j.material.grammage, isSpecialMaterial: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.isSpecialMaterial || false, factorySizes: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.sizes.map(s => ({width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton})) || [] }, frontInks: j.frontInks, backInks: j.backInks, isDuplex: j.backInks > 0, samePlatesForBack: j.samePlatesForBack })),
+            machines: config.machines,
+            availableCuts: config.cuts.map(c => ({ forPaperSize: c.forPaperSize, sheetSizes: c.sheetSizes }))
+        };
+        try {
+            const response = await fetch('https://ganging-optimizer.vercel.app/api/optimize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op' }, body: JSON.stringify(apiPayload) });
+            if (!response.ok) { const errorText = await response.text(); throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`); }
+            const result = await response.json();
+            setOptimizationResult(result);
+        } catch (error) { console.error("Error calling optimizer API:", error); alert("Error al llamar al optimizador: " + error.message);
+        } finally { setLoading(false); }
+    };
     
     const renderPage = () => {
         if (loading) { return <div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin text-cyan-400" size={48} /></div>; }
         if (error) { return <div className="flex flex-col items-center justify-center h-full w-full text-center text-red-400 p-4"><h1>Error de Conexión</h1><p>{error}</p><p className="mt-4 text-sm text-gray-400">Asegúrate de que las variables de entorno de Supabase estén bien configuradas en Vercel y que la base de datos esté accesible.</p></div>; }
-
         if (currentPage === 'cotizador') {
             return optimizationResult 
                 ? <GangingOptimizerUI apiResponse={optimizationResult} onBack={() => setOptimizationResult(null)} />
