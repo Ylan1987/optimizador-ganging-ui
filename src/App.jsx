@@ -131,7 +131,6 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
 // ####### FUNCIÓN ADAPTADORA: TRADUCE LA RESPUESTA DE LA API #######
 // #################################################################################
 const adaptApiResponse = (apiResult) => {
-    // Función interna para adaptar cada layout individualmente
     const adaptLayout = (layout) => {
         if (!layout) return null;
 
@@ -139,7 +138,7 @@ const adaptApiResponse = (apiResult) => {
         layout.layoutId = layout.layout_id;
         layout.sheetsToPrint = layout.net_sheets;
         layout.pressSheetSize = layout.printing_sheet;
-        
+
         // 2. Transformar `jobs_in_layout` de objeto a array de objetos
         if (layout.jobs_in_layout && typeof layout.jobs_in_layout === 'object') {
             layout.jobsInLayout = Object.entries(layout.jobs_in_layout).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
@@ -164,13 +163,11 @@ const adaptApiResponse = (apiResult) => {
 
         return layout;
     };
-    
-    // Adaptar los layouts de la solución base
+
     if (apiResult.baselineSolution && apiResult.baselineSolution.layouts) {
         Object.values(apiResult.baselineSolution.layouts).forEach(adaptLayout);
     }
 
-    // Adaptar los layouts de las soluciones ganging
     if (apiResult.gangedSolutions && Array.isArray(apiResult.gangedSolutions)) {
         apiResult.gangedSolutions.forEach(solution => {
             if (solution.layouts) {
@@ -178,8 +175,7 @@ const adaptApiResponse = (apiResult) => {
             }
         });
     }
-    
-    // Devolver el objeto completo ya "traducido"
+
     return apiResult;
 };
 
