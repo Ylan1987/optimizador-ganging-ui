@@ -1,0 +1,282 @@
+{
+    "baselineSolution": {
+        "layouts": {
+            "base_nuevo-trabajo": {
+                "costBreakdown": {
+                    "materialCost": 178.00383743999998,
+                    "printingCost": {
+                        "impressionCost": 467.6,
+                        "setupCost": 100,
+                        "totalPrintingCost": 567.61,
+                        "washCost": 0.01
+                    }
+                },
+                "jobs_in_layout": {
+                    "nuevo-trabajo": 6
+                },
+                "layout_id": "base_nuevo-trabajo",
+                "machine": {
+                    "id": "0970d220-0845-470f-8077-fa601bbfb8f4",
+                    "impressionCost": {
+                        "perInk": false,
+                        "perInkPass": false,
+                        "price": 2800
+                    },
+                    "maxSheetSize": {
+                        "length": 330,
+                        "width": 700
+                    },
+                    "minImpressionsCharge": 5,
+                    "name": "Digital Color (Grupo) 2",
+                    "overage": {
+                        "amount": 5,
+                        "perInk": false
+                    },
+                    "printingBodies": 4,
+                    "setupCost": {
+                        "perInk": false,
+                        "perInkPass": false,
+                        "price": 100
+                    },
+                    "washCost": {
+                        "perInk": false,
+                        "perInkPass": false,
+                        "price": 0.01
+                    }
+                },
+                "materialNeeds": {
+                    "factorySheets": {
+                        "cuttingPlan": {
+                            "cutsPerSheet": 3,
+                            "positions": [
+                                {
+                                    "length": 305,
+                                    "width": 700,
+                                    "x": 0,
+                                    "y": 0
+                                },
+                                {
+                                    "length": 305,
+                                    "width": 700,
+                                    "x": 0,
+                                    "y": 305
+                                },
+                                {
+                                    "length": 305,
+                                    "width": 700,
+                                    "x": 0,
+                                    "y": 610
+                                }
+                            ]
+                        },
+                        "quantityNeeded": 58,
+                        "size": {
+                            "length": 920,
+                            "usdPerTon": 1430,
+                            "width": 720
+                        }
+                    },
+                    "totalMaterialCost": 178.00383743999998
+                },
+                "net_sheets": 167,
+                "placements": [
+                    {
+                        "length": 148,
+                        "width": 210,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "length": 148,
+                        "width": 210,
+                        "x": 210,
+                        "y": 0
+                    },
+                    {
+                        "length": 148,
+                        "width": 210,
+                        "x": 420,
+                        "y": 0
+                    },
+                    {
+                        "length": 148,
+                        "width": 210,
+                        "x": 0,
+                        "y": 148
+                    },
+                    {
+                        "length": 148,
+                        "width": 210,
+                        "x": 210,
+                        "y": 148
+                    },
+                    {
+                        "length": 148,
+                        "width": 210,
+                        "x": 420,
+                        "y": 148
+                    }
+                ],
+                "printNeeds": {
+                    "passes": 1,
+                    "technique": "SIMPLEX",
+                    "totalPlates": 4
+                },
+                "printing_sheet": {
+                    "length": 305,
+                    "width": 700
+                },
+                "total_cost": 745.61383744
+            }
+        },
+        "total_cost": 745.61
+    },
+    "gangedSolutions": [
+        {
+            "layouts": {
+                "base_nuevo-trabajo": {
+                    "costBreakdown": {
+                        "materialCost": 178.00383743999998,
+                        "printingCost": {
+                            "impressionCost": 467.6,
+                            "setupCost": 100,
+                            "totalPrintingCost": 567.61,
+                            "washCost": 0.01
+                        }
+                    },
+                    "jobsInLayout": [
+                        {
+                            "id": "nuevo-trabajo",
+                            "quantityPerSheet": 6
+                        }
+                    ],
+                    "layoutId": "base_nuevo-trabajo",
+                    "machine": {
+                        "id": "0970d220-0845-470f-8077-fa601bbfb8f4",
+                        "impressionCost": {
+                            "perInk": false,
+                            "perInkPass": false,
+                            "price": 2800
+                        },
+                        "maxSheetSize": {
+                            "length": 330,
+                            "width": 700
+                        },
+                        "minImpressionsCharge": 5,
+                        "name": "Digital Color (Grupo) 2",
+                        "overage": {
+                            "amount": 5,
+                            "perInk": false
+                        },
+                        "printingBodies": 4,
+                        "setupCost": {
+                            "perInk": false,
+                            "perInkPass": false,
+                            "price": 100
+                        },
+                        "washCost": {
+                            "perInk": false,
+                            "perInkPass": false,
+                            "price": 0.01
+                        }
+                    },
+                    "materialNeeds": {
+                        "factorySheets": {
+                            "cuttingPlan": {
+                                "cutsPerSheet": 3,
+                                "positions": [
+                                    {
+                                        "length": 305,
+                                        "width": 700,
+                                        "x": 0,
+                                        "y": 0
+                                    },
+                                    {
+                                        "length": 305,
+                                        "width": 700,
+                                        "x": 0,
+                                        "y": 305
+                                    },
+                                    {
+                                        "length": 305,
+                                        "width": 700,
+                                        "x": 0,
+                                        "y": 610
+                                    }
+                                ]
+                            },
+                            "quantityNeeded": 58,
+                            "size": {
+                                "length": 920,
+                                "usdPerTon": 1430,
+                                "width": 720
+                            }
+                        },
+                        "totalMaterialCost": 178.00383743999998
+                    },
+                    "placements": [
+                        {
+                            "length": 148,
+                            "width": 210,
+                            "x": 0,
+                            "y": 0
+                        },
+                        {
+                            "length": 148,
+                            "width": 210,
+                            "x": 210,
+                            "y": 0
+                        },
+                        {
+                            "length": 148,
+                            "width": 210,
+                            "x": 420,
+                            "y": 0
+                        },
+                        {
+                            "length": 148,
+                            "width": 210,
+                            "x": 0,
+                            "y": 148
+                        },
+                        {
+                            "length": 148,
+                            "width": 210,
+                            "x": 210,
+                            "y": 148
+                        },
+                        {
+                            "length": 148,
+                            "width": 210,
+                            "x": 420,
+                            "y": 148
+                        }
+                    ],
+                    "printNeeds": {
+                        "passes": 1,
+                        "technique": "SIMPLEX",
+                        "totalPlates": 4
+                    },
+                    "printingSheet": {
+                        "length": 305,
+                        "width": 700
+                    },
+                    "sheetsToPrint": 167
+                }
+            },
+            "productionPlan": [
+                {
+                    "costForThisPlanItem": 745.61,
+                    "id": "base_nuevo-trabajo",
+                    "sheets": 167
+                }
+            ],
+            "summary": {
+                "gangedTotalCost": 745.61
+            }
+        }
+    ],
+    "summary": {
+        "baselineTotalCost": 745.61
+    }
+}

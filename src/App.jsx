@@ -126,6 +126,64 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
     return ( <div className="p-4 space-y-6"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Cotizador de Trabajos</h1> <button title="Agregar Trabajo" onClick={addJob} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold flex items-center gap-2"><Plus size={20}/> Agregar Trabajo</button> </header> <div className="space-y-4"> {jobs.map(job => { const selectedMaterial = materialsData.find(m => m.name === job.material.name); const grammageOptions = selectedMaterial ? selectedMaterial.grades.flatMap(g => g.grams).map(gr => ({value: gr, label: `${gr}g`})) : []; return ( <div key={job.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-3 mb-4"> <EditableField value={job.name} onChange={e => updateJob(job.id, {name: e.target.value})} isEditing={editingField === `${job.id}-name`} onStartEdit={() => setEditingField(`${job.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg !font-semibold" /> <IconButton title="Eliminar Trabajo" onClick={() => removeJob(job.id)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"> <div className="grid grid-cols-3 gap-2"> <LabeledField label="Ancho (mm)"><EditableField type="number" value={job.width} onChange={e => updateJob(job.id, {width: toNum(e.target.value)})} isEditing={editingField === `${job.id}-w`} onStartEdit={()=>setEditingField(`${job.id}-w`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> <LabeledField label="Largo (mm)"><EditableField type="number" value={job.length} onChange={e => updateJob(job.id, {length: toNum(e.target.value)})} isEditing={editingField === `${job.id}-l`} onStartEdit={()=>setEditingField(`${job.id}-l`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> <LabeledField label="Cantidad"><EditableField type="number" value={job.quantity} onChange={e => updateJob(job.id, {quantity: toNum(e.target.value)})} isEditing={editingField === `${job.id}-q`} onStartEdit={()=>setEditingField(`${job.id}-q`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> </div> <div className="grid grid-cols-2 gap-2"> <LabeledField label="Material"><EditableField type="select" value={job.material.name} onChange={e => updateJob(job.id, {material: {name: e.target.value, grammage: ''}})} options={[{value:'', label: 'Seleccionar...'},...materialOptions]} onEndEdit={()=>{}} /></LabeledField> <LabeledField label="Gramaje"><EditableField type="select" value={job.material.grammage} onChange={e => updateJob(job.id, {material: {...job.material, grammage: toNum(e.target.value)}})} options={[{value:'', label: '...'},...grammageOptions]} onEndEdit={()=>{}} /></LabeledField> </div> <div className="grid grid-cols-2 gap-2"> <LabeledField label="Tintas Frente"><EditableField type="number" value={job.frontInks} onChange={e => updateJob(job.id, {frontInks: toNum(e.target.value)})} isEditing={editingField === `${job.id}-f`} onStartEdit={()=>setEditingField(`${job.id}-f`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> <LabeledField label="Tintas Dorso"><EditableField type="number" value={job.backInks} onChange={e => updateJob(job.id, {backInks: toNum(e.target.value)})} isEditing={editingField === `${job.id}-b`} onStartEdit={()=>setEditingField(`${job.id}-b`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> </div> <div className="grid grid-cols-2 gap-2"> <ToggleSwitch label="Rotable" enabled={job.rotatable} onChange={v => updateJob(job.id, {rotatable: v})}/> <ToggleSwitch label="Mismas Planchas F/D" enabled={job.samePlatesForBack} onChange={v => updateJob(job.id, {samePlatesForBack: v})}/> </div> </div> </div> ) })} </div> {jobs.length > 0 && ( <div className="mt-6 flex justify-end"> <button onClick={() => onOptimize(jobs)} className="px-8 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors flex items-center gap-2"> <Wand2 size={20} /> Optimizar Cotización </button> </div> )} </div> );
 };
 
+
+// #################################################################################
+// ####### FUNCIÓN ADAPTADORA: TRADUCE LA RESPUESTA DE LA API #######
+// #################################################################################
+const adaptApiResponse = (apiResult) => {
+    // Función interna para adaptar cada layout individualmente
+    const adaptLayout = (layout) => {
+        if (!layout) return null;
+
+        // 1. Renombrar y transformar campos clave
+        layout.layoutId = layout.layout_id;
+        layout.sheetsToPrint = layout.net_sheets;
+        layout.pressSheetSize = layout.printing_sheet;
+        
+        // 2. Transformar `jobs_in_layout` de objeto a array de objetos
+        if (layout.jobs_in_layout && typeof layout.jobs_in_layout === 'object') {
+            layout.jobsInLayout = Object.entries(layout.jobs_in_layout).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
+        } else {
+            layout.jobsInLayout = [];
+        }
+
+        // 3. Normalizar 'placements' para que usen w y h, que es lo que espera el visualizador
+        if (layout.placements && Array.isArray(layout.placements)) {
+            layout.placements = layout.placements.map(p => ({
+                ...p,
+                w: p.width,
+                h: p.length,
+            }));
+        }
+
+        // 4. Limpiar los campos originales para evitar confusiones
+        delete layout.layout_id;
+        delete layout.net_sheets;
+        delete layout.printing_sheet;
+        delete layout.jobs_in_layout;
+
+        return layout;
+    };
+    
+    // Adaptar los layouts de la solución base
+    if (apiResult.baselineSolution && apiResult.baselineSolution.layouts) {
+        Object.values(apiResult.baselineSolution.layouts).forEach(adaptLayout);
+    }
+
+    // Adaptar los layouts de las soluciones ganging
+    if (apiResult.gangedSolutions && Array.isArray(apiResult.gangedSolutions)) {
+        apiResult.gangedSolutions.forEach(solution => {
+            if (solution.layouts) {
+                Object.values(solution.layouts).forEach(adaptLayout);
+            }
+        });
+    }
+    
+    // Devolver el objeto completo ya "traducido"
+    return apiResult;
+};
+
+
 // #################################################################################
 // ####### COMPONENTE PRINCIPAL DE LA APP Y NAVEGACIÓN #######
 // #################################################################################
@@ -135,55 +193,6 @@ export default function App() {
     const [config, setConfig] = useState({ machines: [], materials: [], cuts: [], settings: null });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const adaptApiResponse = (apiResult) => {
-        const adaptLayout = (layout) => {
-            if (!layout) return null;
-            
-            // Renombrar campos con guion bajo a camelCase y adaptar estructuras
-            layout.layoutId = layout.layout_id;
-            layout.sheetsToPrint = layout.net_sheets;
-            layout.pressSheetSize = layout.printing_sheet;
-            
-            // Adaptar `jobs_in_layout` de objeto a array si es necesario
-            if (layout.jobs_in_layout && !Array.isArray(layout.jobs_in_layout)) {
-                layout.jobsInLayout = Object.entries(layout.jobs_in_layout).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
-            } else {
-                layout.jobsInLayout = layout.jobsInLayout || [];
-            }
-            
-            // Adaptar `placements` si las claves son 'width'/'length' en lugar de 'w'/'h'
-             if (layout.placements && Array.isArray(layout.placements)) {
-                layout.placements = layout.placements.map(p => ({
-                    ...p,
-                    w: p.width,
-                    h: p.length
-                }));
-            }
-
-            // Eliminar los campos antiguos para evitar confusiones
-            delete layout.net_sheets;
-            delete layout.printing_sheet;
-            delete layout.jobs_in_layout;
-            delete layout.layout_id;
-
-            return layout;
-        };
-        
-        if (apiResult.baselineSolution && apiResult.baselineSolution.layouts) {
-            Object.values(apiResult.baselineSolution.layouts).forEach(adaptLayout);
-        }
-
-        if (apiResult.gangedSolutions && Array.isArray(apiResult.gangedSolutions)) {
-            apiResult.gangedSolutions.forEach(solution => {
-                if (solution.layouts) {
-                    Object.values(solution.layouts).forEach(adaptLayout);
-                }
-            });
-        }
-        
-        return apiResult;
-    };
 
     const loadConfig = useCallback(async () => {
         setLoading(true);
