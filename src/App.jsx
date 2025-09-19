@@ -273,7 +273,7 @@ export default function App() {
             return optimizationResult 
                 ? <GangingOptimizerUI apiResponse={optimizationResult} onBack={() => setOptimizationResult(null)} dollarRate={config.settings.dollarRate} />
                 : <JobsInputPage onOptimize={handleOptimize} materialsData={config.materials}/>;
-        }
+            }
         switch (currentPage) {
             case 'maquinas': return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
             case 'materiales': return <MaterialsAdminPage initialData={config.materials} onSave={handleSave} />;
