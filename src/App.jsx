@@ -186,14 +186,20 @@ export default function App() {
         }
     };
 
-    const handleOptimize = async (jobs) => {
+ const handleOptimize = async (jobs) => {
         setLoading(true);
+        // Limpiar el campo 'preferred' de los datos de cortes antes de enviar a la API
+        const cleanedCuts = config.cuts.map(cutGroup => ({
+            forPaperSize: cutGroup.forPaperSize,
+            sheetSizes: cutGroup.sheetSizes.map(({ width, length }) => ({ width, length }))
+        }));
+
         const apiPayload = {
             options: { timeoutSeconds: config.settings.timeoutSeconds, numberOfSolutions: config.settings.numberOfSolutions, penalties: config.settings.penalties },
             commonDetails: { dollarRate: config.settings.dollarRate },
             jobs: jobs.map(j => ({ id: j.name.replace(/\s+/g, '-').toLowerCase(), width: j.width, length: j.length, quantity: j.quantity, rotatable: j.rotatable, material: { id: j.material.name, name: j.material.name, grammage: j.material.grammage, isSpecialMaterial: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.isSpecialMaterial || false, factorySizes: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.sizes.map(s => ({width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton})) || [] }, frontInks: j.frontInks, backInks: j.backInks, isDuplex: j.backInks > 0, samePlatesForBack: j.samePlatesForBack })),
             machines: config.machines,
-            availableCuts: config.cuts.map(c => ({ forPaperSize: c.forPaperSize, sheetSizes: c.sheetSizes }))
+            availableCuts: cleanedCuts // Usar los datos limpios
         };
         try {
             const response = await fetch('https://ganging-optimizer.vercel.app/api/optimize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op' }, body: JSON.stringify(apiPayload) });
