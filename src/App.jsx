@@ -82,7 +82,7 @@ const GangingOptimizerUI = ({ apiResponse, onBack, dollarRate }) => {
                 { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [
                     { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales", details: [{ title: "Cálculo", value: pCost.setupCost, formula: `${formatCurrency(machine.setupCost.price || 0)} × ${pNeeds.totalPlates} planchas` }] },
                     { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" },
-                    { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas`, details: [{ title: "Cálculo", value: pCost.impressionCost, formula: `${formatNumber(chargeableImpressions)} pliegos × (${formatCurrency(machine.impressionCost.price || 0)} / 1000) × ${pNeeds.passes}` }] }
+                { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas`, details: [{ title: "Cálculo", value: pCost.impressionCost, formula: `${formatNumber(chargeableImpressions)} pliegos × (${formatCurrency(machine.impressionCost.pricePerThousand || 0)} / 1000) × ${pNeeds.passes}` }] }
                 ]},
                 { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [
                     { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${formatNumber(mNeeds.factorySheets.quantityNeeded)} hojas × ${formatCurrency(mNeeds.totalMaterialCost / mNeeds.factorySheets.quantityNeeded)} p/hoja`,
@@ -285,7 +285,7 @@ const GeneralSettingsPage = ({ initialData, onSave }) => {
 // #################################################################################
 const JobsInputPage = ({ onOptimize, materialsData }) => {
     const [jobs, setJobs] = useState([]); const [editingField, setEditingField] = useState(null); const toNum = (s) => { const n = Number(s); return Number.isFinite(n) ? n : null; };
-    const addJob = () => { const lastJob = jobs[0]; const newJob = { id: `job-${Date.now()}`, name: "Nuevo Trabajo", width: 148, length: 210, quantity: 1000, rotatable: lastJob ? lastJob.rotatable : true, samePlatesForBack: lastJob ? lastJob.samePlatesForBack : false, material: lastJob ? lastJob.material : { name: '', grammage: '' }, frontInks: lastJob ? lastJob.frontInks : 4, backInks: lastJob ? lastJob.backInks : 0, }; setJobs(p => [newJob, ...p]); };
+    const addJob = () => { const lastJob = jobs[0]; const newJob = { id: `job-${Date.now()}`, name: `Trabajo Nuevo ${jobs.length + 1}`, width: 148, length: 210, quantity: 1000, rotatable: lastJob ? lastJob.rotatable : true, samePlatesForBack: lastJob ? lastJob.samePlatesForBack : false, material: lastJob ? lastJob.material : { name: '', grammage: '' }, frontInks: lastJob ? lastJob.frontInks : 4, backInks: lastJob ? lastJob.backInks : 0, }; setJobs(p => [newJob, ...p]); };
     const removeJob = (id) => setJobs(p => p.filter(j => j.id !== id));
     const updateJob = (id, patch) => setJobs(p => p.map(j => j.id === id ? {...j, ...patch} : j));
     const materialOptions = materialsData.map(m => ({value: m.name, label: m.name}));
@@ -419,7 +419,33 @@ export default function App() {
         const apiPayload = {
             options: { timeoutSeconds: config.settings.timeoutSeconds, numberOfSolutions: config.settings.numberOfSolutions, penalties: config.settings.penalties },
             commonDetails: { dollarRate: config.settings.dollarRate },
-            jobs: jobs.map(j => ({ id: j.name.replace(/\s+/g, '-').toLowerCase(), width: j.width, length: j.length, quantity: j.quantity, rotatable: j.rotatable, material: { id: j.material.name, name: j.material.name, grammage: j.material.grammage, isSpecialMaterial: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.isSpecialMaterial || false, factorySizes: config.materials.find(m => m.name === j.material.name)?.grades.find(g => g.grams.includes(j.material.grammage))?.sizes.map(s => ({width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton})) || [] }, frontInks: j.frontInks, backInks: j.backInks, isDuplex: j.backInks > 0, samePlatesForBack: j.samePlatesForBack })),
+            jobs: jobs.map(j => {
+                const materialConfig = config.materials.find(m => m.name === j.material.name);
+                const gradeConfig = materialConfig?.grades.find(g => g.grams.includes(j.material.grammage));
+
+                // Asumimos que cada 'grade' tiene un 'id' numérico único que podemos encontrar.
+                // Si no, usamos un placeholder. En un caso real, la DB debería proveer esto.
+                const materialId = gradeConfig?.id || null; 
+
+                return {
+                    id: j.name.replace(/\s+/g, '-').toLowerCase(), 
+                    width: j.width, 
+                    length: j.length, 
+                    quantity: j.quantity, 
+                    rotatable: j.rotatable, 
+                    material: { 
+                        id: materialId, 
+                        name: j.material.name, 
+                        grammage: j.material.grammage, 
+                        isSpecialMaterial: gradeConfig?.isSpecialMaterial || false, 
+                        factorySizes: gradeConfig?.sizes?.map(s => ({width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton})) || [] 
+                    }, 
+                    frontInks: j.frontInks, 
+                    backInks: j.backInks, 
+                    isDuplex: j.backInks > 0, 
+                    samePlatesForBack: j.samePlatesForBack 
+                };
+            }),
             machines: config.machines,
             availableCuts: cleanedCuts // Usar los datos limpios
         };
