@@ -168,7 +168,17 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
             const page = await pdfDoc.getPage(1);
             
+            // --- LÍNEAS DE DEPURACIÓN AÑADIDAS ---
+            console.log(`--- Depurando PDF para trabajo: ${jobName} ---`);
+            console.log("Valor de page.trimBox:", page.trimBox);
+            console.log("Valor de page.mediaBox:", page.mediaBox);
+            // --- FIN DE LÍNEAS DE DEPURACIÓN ---
+        
             const trimBox = page.trimBox || page.mediaBox;
+
+            if (!trimBox || trimBox.length !== 4) {
+                throw new Error("El PDF no contiene un TrimBox o MediaBox válido. No se pueden verificar las dimensiones.");
+            }
             const pdfWidthPt = trimBox[2] - trimBox[0];
             const pdfHeightPt = trimBox[3] - trimBox[1];
             
