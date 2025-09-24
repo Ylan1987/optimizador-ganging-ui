@@ -196,7 +196,7 @@ const ToggleSwitch = ({ label, enabled, onChange }) => ( <div className="flex it
             {selectedSolution ? <SolutionDisplay onSaveQuote={onSaveQuote} solution={selectedSolution} baseCost={baseSolution.total_cost} dollarRate={dollarRate} /> : <div className="text-center py-10 text-gray-400">Seleccione una solución para ver los detalles.</div>}
         </div>
     );
-};
+};*/
 
 // #################################################################################
 // ####### COMPONENTE 2: PÁGINA DE CONFIGURACIÓN DE MÁQUINAS #######
