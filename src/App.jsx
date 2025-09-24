@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Settings, Printer, Scissors, Calculator, Wand2, Loader2, Save } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { ImpositionPage } from './ImpositionPage';
+import { Workspace } from './Workspace';
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
@@ -386,6 +387,13 @@ export default function App() {
         loadConfig();
     }, [loadConfig]);
 
+    const handleLoadQuote = (quote) => {
+        // La información del armado está en la columna 'ganging_result'
+        setOptimizationResult(quote.ganging_result);
+        // Cambiamos a la página 'workspace' para mostrar el resultado cargado
+        setCurrentPage('workspace');
+    };
+
      const handleSaveQuote = async (quoteNumber, solutionData, totalCost) => {
         setLoading(true);
         try {
@@ -493,6 +501,7 @@ export default function App() {
             const result = await response.json();
             const adaptedResult = adaptApiResponse(result); // ¡Aquí ocurre la magia!
             setOptimizationResult(adaptedResult);
+            setCurrentPage('workspace');
         } catch (error) { console.error("Error calling optimizer API:", error); alert("Error al llamar al optimizador: " + error.message);
         } finally { setLoading(false); }
     };
@@ -501,14 +510,21 @@ export default function App() {
         const pythonApiUrl = 'https://preprensa-api.vercel.app/api'; // O la URL de tu API
         if (loading) { return <div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin text-cyan-400" size={48} /></div>; }
         if (error) { return <div className="text-center p-4 text-red-400"><h1>Error de Conexión</h1><p>{error}</p></div>; }
-        if (currentPage === 'cotizador') {
-            return optimizationResult 
-                ? <GangingOptimizerUI apiResponse={optimizationResult} onBack={() => setOptimizationResult(null)} onSaveQuote={handleSaveQuote} dollarRate={config.settings.dollarRate} />
-                : <JobsInputPage onOptimize={handleOptimize} materialsData={config.materials}/>;
-        }
-            // --- AÑADIMOS LA NUEVA PÁGINA ---
-        if (currentPage === 'imposicion') {
-            return <ImpositionPage supabase={supabase} pythonApiUrl={pythonApiUrl} />;
+        switch (currentPage) {
+            case 'cotizador':
+                return <JobsInputPage onOptimize={handleOptimize} materialsData={config.materials} />;
+            case 'workspace':
+                return <Workspace 
+                            apiResponse={optimizationResult}
+                            onBack={() => { setOptimizationResult(null); setCurrentPage('cotizador'); }}
+                            onSaveQuote={handleSaveQuote} // La función que ya tenías
+                            onGenerateImposition={() => { /* Lógica futura */ }} // Lo conectaremos después
+                            dollarRate={config.settings.dollarRate}
+                            isLoading={loading}
+                        />;
+            case 'imposicion':
+                return <ImpositionPage supabase={supabase} onSelectQuote={handleLoadQuote} />;
+            // ... el resto de tus casos para 'maquinas', 'materiales', etc. sigue igual
         }
         switch (currentPage) {
             case 'maquinas': return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
