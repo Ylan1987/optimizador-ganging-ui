@@ -11,19 +11,20 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 // --- COMPONENTES INTERNOS AUXILIARES ---
 
-const PDFPreview = ({ file }) => {
-    const options = {
-        workerSrc: "/pdf.worker.min.js",
-    };
-
-    return (
-        <div className="w-full h-full flex items-center justify-center overflow-hidden">
-            <Document file={file} options={options} loading={<Loader2 className="animate-spin text-white/50" />}>
-                <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
-            </Document>
-        </div>
-    );
-};
+  const PDFPreview = ({ file }) => {
+      const options = {
+          // Esta es la forma correcta de decirle a react-pdf dónde encontrar el worker
+          workerSrc: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`,
+      };
+  
+      return (
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+              <Document file={file} options={options} loading={<Loader2 className="animate-spin text-white/50" />}>
+                  <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
+              </Document>
+          </div>
+      );
+  };
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
