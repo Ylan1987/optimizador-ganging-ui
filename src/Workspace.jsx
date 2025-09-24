@@ -6,11 +6,9 @@ import { Document, Page } from 'react-pdf';
 
 // Ya no se necesita la configuración global de pdfjs, la nueva versión lo maneja automáticamente.
 
-// --- COMPONENTES INTERNOS ---
-
 const PDFPreview = ({ file }) => (
     <div className="w-full h-full flex items-center justify-center overflow-hidden">
-        {/* Ya no se pasa la prop 'options', no es necesaria */}
+        {/* Ya no se pasa la prop 'options' */}
         <Document file={file} loading={<Loader2 className="animate-spin text-white/50" />}>
             <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
         </Document>
@@ -189,7 +187,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             </div>
             
             {(selectedSolution.summary ? gangedPlan : baseLayouts).map((layout, index) => (
-                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} formatCurrency={formatCurrency} formatNumber={formatNumber}/>
+                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} formatCurrency={formatCurrency} formatNumber={formatNumber} />
             ))}
 
             <div className="bg-slate-800/50 border border-gray-700 rounded-lg mt-6 shadow-lg p-4">
