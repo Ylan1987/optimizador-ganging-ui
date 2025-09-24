@@ -16,11 +16,8 @@ const PDFPreview = ({ file, placementWidth, placementHeight }) => {
         });
     };
 
-    // Comparamos la orientación (aspect ratio) del PDF con la del espacio en el pliego
     const isPdfLandscape = pdfSize.width > pdfSize.height;
     const isPlacementLandscape = placementWidth > placementHeight;
-
-    // Si las orientaciones no coinciden, rotamos 90 grados
     const rotation = isPdfLandscape !== isPlacementLandscape ? 90 : 0;
 
     return (
@@ -158,7 +155,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     const onDrop = useCallback(async (acceptedFiles, jobName) => {
         const file = acceptedFiles[0];
-        if (!file) return;
+        if (!file || !apiResponse?.jobs) return;
 
         setMessage('');
         setLoading(true);
@@ -200,7 +197,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         } finally {
             setLoading(false);
         }
-    }, [apiResponse, setLoading]); // <-- CORRECCIÓN APLICADA AQUÍ
+    }, [apiResponse, setLoading]);
 
     const { baselineSolution, gangedSolutions } = apiResponse;
     const solutions = useMemo(() => {
