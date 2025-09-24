@@ -10,6 +10,42 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 
 // --- COMPONENTES INTERNOS ---
 
+const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { const [isOpen, setIsOpen] = useState(defaultOpen); return ( <div className="border-t border-gray-700 last:border-b-0"> <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> <div className="flex justify-between items-center"> <div> <p className="font-semibold text-gray-200 text-sm">{title}</p> {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} </div> <div className="flex items-center gap-4"> <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} </div> </div> </button> {isOpen && details && ( <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> {details.map((item, index) => <CostAccordion key={index} {...item} />)} </div> )} </div> ); };
+const ProductionSheet = ({ layout }) => {
+    const costDetails = useMemo(() => {
+         const pCost = layout.costBreakdown.printingCost;
+        const mNeeds = layout.materialNeeds;
+        const pNeeds = layout.printNeeds;
+        const machine = layout.machine;
+        const chargeableImpressions = Math.max(layout.sheetsToPrint, machine.minImpressionsCharge || 0);
+         return [ { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [ { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales" }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas` } ]}, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [ { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${(mNeeds.factorySheets.quantityNeeded || 0).toLocaleString('es-UY')} hojas × ${formatCurrency(mNeeds.totalMaterialCost / mNeeds.factorySheets.quantityNeeded)} p/hoja` } ]} ];
+    }, [layout]);
+    const technicalDetails = useMemo(() => { const { printNeeds, materialNeeds, sheetsToPrint, machine, pressSheetSize } = layout; return [ { title: "Pliegos a Imprimir", value: `${(sheetsToPrint||0).toLocaleString('es-UY')} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${(materialNeeds.factorySheets.quantityNeeded||0).toLocaleString('es-UY')} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ]; }, [layout]);
+
+    return (
+        <div className="bg-slate-800/50 border border-gray-700 rounded-lg mb-6 shadow-lg overflow-hidden">
+            <div className="p-4 bg-black/20"><h3 className="font-bold text-lg text-white">Pliego: <span className="text-cyan-400">{layout.layoutId}</span></h3></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+                {/* Columna Izquierda: Costos y Detalles Técnicos */}
+                <div className="space-y-4">
+                    <div>
+                        <h4 className="font-semibold text-gray-300 mb-2">Desglose de Costos</h4>
+                        <div className="bg-gray-900/50 rounded-md overflow-hidden border border-gray-700">{costDetails.map((item, i) => <CostAccordion key={i} {...item} defaultOpen={i===0}/>)}</div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-gray-300 mb-2">Requerimientos Técnicos</h4>
+                        <div className="bg-gray-900/50 rounded-md border border-gray-700 text-xs p-2 space-y-1.5">{technicalDetails.map((item, i) => (<div key={i} className="flex justify-between items-baseline gap-2 border-b border-gray-800 pb-1 last:border-b-0"><span className="text-gray-400 font-medium whitespace-nowrap">{item.title}</span><span className="text-gray-200 font-mono text-right">{item.value}</span></div>))}</div>
+                    </div>
+                </div>
+                {/* Columna Derecha: Visualizadores y Zona de Imposición */}
+                <div className="space-y-6">
+                    <DynamicLayoutVisualizer layout={layout} isInteractive={false} />
+                    <DynamicLayoutVisualizer layout={layout} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} />
+                </div>
+            </div>
+        </div>
+    );
+};
 const PDFPreview = ({ file }) => (
     <div className="w-full h-full flex items-center justify-center overflow-hidden">
         <Document file={file} loading={<Loader2 className="animate-spin text-white/50" />}>
@@ -135,43 +171,6 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     };
 
     if (!selectedSolution) return <div className="p-6 text-center text-gray-400">Cargando solución...</div>;
-
-    const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { const [isOpen, setIsOpen] = useState(defaultOpen); return ( <div className="border-t border-gray-700 last:border-b-0"> <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> <div className="flex justify-between items-center"> <div> <p className="font-semibold text-gray-200 text-sm">{title}</p> {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} </div> <div className="flex items-center gap-4"> <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} </div> </div> </button> {isOpen && details && ( <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> {details.map((item, index) => <CostAccordion key={index} {...item} />)} </div> )} </div> ); };
-    const ProductionSheet = ({ layout }) => {
-        const costDetails = useMemo(() => {
-             const pCost = layout.costBreakdown.printingCost;
-            const mNeeds = layout.materialNeeds;
-            const pNeeds = layout.printNeeds;
-            const machine = layout.machine;
-            const chargeableImpressions = Math.max(layout.sheetsToPrint, machine.minImpressionsCharge || 0);
-             return [ { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [ { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales" }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas` } ]}, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [ { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${(mNeeds.factorySheets.quantityNeeded || 0).toLocaleString('es-UY')} hojas × ${formatCurrency(mNeeds.totalMaterialCost / mNeeds.factorySheets.quantityNeeded)} p/hoja` } ]} ];
-        }, [layout]);
-        const technicalDetails = useMemo(() => { const { printNeeds, materialNeeds, sheetsToPrint, machine, pressSheetSize } = layout; return [ { title: "Pliegos a Imprimir", value: `${(sheetsToPrint||0).toLocaleString('es-UY')} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${(materialNeeds.factorySheets.quantityNeeded||0).toLocaleString('es-UY')} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ]; }, [layout]);
-
-        return (
-            <div className="bg-slate-800/50 border border-gray-700 rounded-lg mb-6 shadow-lg overflow-hidden">
-                <div className="p-4 bg-black/20"><h3 className="font-bold text-lg text-white">Pliego: <span className="text-cyan-400">{layout.layoutId}</span></h3></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
-                    {/* Columna Izquierda: Costos y Detalles Técnicos */}
-                    <div className="space-y-4">
-                        <div>
-                            <h4 className="font-semibold text-gray-300 mb-2">Desglose de Costos</h4>
-                            <div className="bg-gray-900/50 rounded-md overflow-hidden border border-gray-700">{costDetails.map((item, i) => <CostAccordion key={i} {...item} defaultOpen={i===0}/>)}</div>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold text-gray-300 mb-2">Requerimientos Técnicos</h4>
-                            <div className="bg-gray-900/50 rounded-md border border-gray-700 text-xs p-2 space-y-1.5">{technicalDetails.map((item, i) => (<div key={i} className="flex justify-between items-baseline gap-2 border-b border-gray-800 pb-1 last:border-b-0"><span className="text-gray-400 font-medium whitespace-nowrap">{item.title}</span><span className="text-gray-200 font-mono text-right">{item.value}</span></div>))}</div>
-                        </div>
-                    </div>
-                    {/* Columna Derecha: Visualizadores y Zona de Imposición */}
-                    <div className="space-y-6">
-                        <DynamicLayoutVisualizer layout={layout} isInteractive={false} />
-                        <DynamicLayoutVisualizer layout={layout} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} />
-                    </div>
-                </div>
-            </div>
-        );
-    };
     
     const baseLayouts = Object.values(baselineSolution.layouts);
     const gangedPlan = selectedSolution.summary ? (selectedSolution.productionPlan || []).map(item => selectedSolution.layouts[item.id]).filter(Boolean) : [];

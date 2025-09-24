@@ -549,7 +549,7 @@ export default function App() {
             const response = await fetch('https://ganging-optimizer.vercel.app/api/optimize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op' }, body: JSON.stringify(apiPayload) });
             if (!response.ok) { const errorText = await response.text(); throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`); }
             const result = await response.json();
-            const adaptedResult = adaptApiResponse(result); // ¡Aquí ocurre la magia!
+            const adaptedResult = adaptApiResponse(result); // Aquí ocurre la magia!
             setOptimizationResult(adaptedResult);
             setCurrentPage('workspace');
         } catch (error) { console.error("Error calling optimizer API:", error); alert("Error al llamar al optimizador: " + error.message);
@@ -575,9 +575,6 @@ export default function App() {
                         />;
             case 'imposicion':
                 return <ImpositionPage supabase={supabase} onSelectQuote={handleLoadQuote} />;
-            case 'imposicion':
-                return <ImpositionPage supabase={supabase} onSelectQuote={handleLoadQuote} />;
-            
             case 'maquinas':
                 return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
             
@@ -591,13 +588,6 @@ export default function App() {
                 return <GeneralSettingsPage initialData={config.settings} onSave={handleSave} />;
             default:
                 return <div>Página no encontrada</div>;
-        }
-        switch (currentPage) {
-            case 'maquinas': return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
-            case 'materiales': return <MaterialsAdminPage initialData={config.materials} onSave={handleSave} />;
-            case 'cortes': return <CutsAdminPage initialData={config.cuts} onSave={handleSave} />;
-            case 'general': return <GeneralSettingsPage initialData={config.settings} onSave={handleSave} />;
-            default: return null;
         }
     };
     
