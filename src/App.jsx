@@ -5,7 +5,7 @@ import { ImpositionPage } from './ImpositionPage';
 import { Workspace } from './Workspace';
 import { pdfjs } from 'react-pdf';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js`;
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
