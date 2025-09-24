@@ -194,7 +194,7 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
             </div>
             {/* --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ --- */}
             {/* Ahora le pasamos onSaveQuote al componente SolutionDisplay */}
-            {selectedSolution ? <SolutionDisplay solution={selectedSolution} baseCost={baseSolution.total_cost} dollarRate={dollarRate} /> : <div className="text-center py-10 text-gray-400">Seleccione una solución para ver los detalles.</div>}
+            {selectedSolution ? <SolutionDisplay onSaveQuote={onSaveQuote} solution={selectedSolution} baseCost={baseSolution.total_cost} dollarRate={dollarRate} /> : <div className="text-center py-10 text-gray-400">Seleccione una solución para ver los detalles.</div>}
         </div>
     );
 };
