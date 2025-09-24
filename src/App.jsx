@@ -193,8 +193,6 @@ const ToggleSwitch = ({ label, enabled, onChange }) => ( <div className="flex it
                     ))}
                 </div>
             </div>
-            {/* --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ --- */}
-            {/* Ahora le pasamos onSaveQuote al componente SolutionDisplay */}
             {selectedSolution ? <SolutionDisplay onSaveQuote={onSaveQuote} solution={selectedSolution} baseCost={baseSolution.total_cost} dollarRate={dollarRate} /> : <div className="text-center py-10 text-gray-400">Seleccione una solución para ver los detalles.</div>}
         </div>
     );
@@ -549,7 +547,7 @@ export default function App() {
             const response = await fetch('https://ganging-optimizer.vercel.app/api/optimize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op' }, body: JSON.stringify(apiPayload) });
             if (!response.ok) { const errorText = await response.text(); throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`); }
             const result = await response.json();
-            const adaptedResult = adaptApiResponse(result); // Aquí ocurre la magia!
+            const adaptedResult = adaptApiResponse(result); // Aquí ocurre la magia
             setOptimizationResult(adaptedResult);
             setCurrentPage('workspace');
         } catch (error) { console.error("Error calling optimizer API:", error); alert("Error al llamar al optimizador: " + error.message);
