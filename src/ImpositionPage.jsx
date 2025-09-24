@@ -6,9 +6,9 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Configuración de pdf.js (necesaria para react-pdf)
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
+// --- Componentes Auxiliares (sin cambios) ---
 const SearchResultCard = ({ quote, onSelect }) => (
     <div onClick={() => onSelect(quote)} className="p-4 bg-slate-800 rounded-lg border border-gray-700 hover:border-cyan-500 cursor-pointer transition-colors">
         <div className="flex justify-between items-center">
@@ -23,19 +23,73 @@ const SearchResultCard = ({ quote, onSelect }) => (
 const PDFPreview = ({ file }) => {
     if (!file) return <div className="w-full h-full bg-black/20 flex items-center justify-center"><FileText size={24} className="text-white/30"/></div>;
     return (
-        <div className="w-full h-full">
-            <Document file={file} loading={<Loader2 className="animate-spin" />}>
+        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <Document file={file} loading={<Loader2 className="animate-spin text-white/50" />}>
                 <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
             </Document>
         </div>
     );
 };
 
+// --- NUEVO COMPONENTE PARA CADA RECTÁNGULO DEL PLIEGO ---
+const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id),
+        noClick: true,
+        noKeyboard: true
+    });
+
+    const itemStyle = {
+        left: item.x * scale + padding / 2,
+        top: item.y * scale + padding / 2,
+        width: item.w * scale,
+        height: item.h * scale,
+    };
+    
+    const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
+
+    return (
+        <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
+            <input {...getInputProps()} />
+            <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                {fileForJob ? <PDFPreview file={fileForJob} /> : <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>}
+            </div>
+        </div>
+    );
+};
+
+// --- VISUALIZADOR DEL PLIEGO (MODIFICADO) ---
+const DynamicLayoutVisualizer = ({ layout, jobFiles, onDrop }) => {
+    const parentSize = layout.pressSheetSize;
+    const items = layout.placements;
+    const containerSize = 400, padding = 10;
+    const scale = Math.min((containerSize - padding) / parentSize.width, (containerSize - padding) / parentSize.length);
+    
+    return (
+        <div className="p-4 border-2 border-dashed rounded-lg border-gray-600">
+            <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
+                {items.map((item, i) => (
+                    <ImpositionItem
+                        key={`${item.id}-${i}`}
+                        item={item}
+                        scale={scale}
+                        padding={padding}
+                        onDrop={onDrop}
+                        fileForJob={jobFiles[item.id]}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
+// --- COMPONENTE PRINCIPAL DE LA PÁGINA (MODIFICADO) ---
 export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [selectedQuote, setSelectedQuote] = useState(null);
-    const [jobFiles, setJobFiles] = useState({}); // { job_name: File }
+    const [jobFiles, setJobFiles] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('Busca un número de presupuesto para comenzar.');
 
@@ -66,12 +120,30 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
         }
     }, []);
     
-    // Extraemos la lista única de trabajos del armado
     const requiredJobs = useMemo(() => {
         if (!selectedQuote) return [];
-        const jobs = selectedQuote.ganging_result.baselineSolution.layouts[selectedQuote.chosen_solution_name]?.jobsInLayout || [];
-        // En tu estructura, jobsInLayout es un array de {id, quantityPerSheet}
-        return jobs.map(j => ({ name: j.id, quantity: j.quantityPerSheet }));
+        const chosenLayoutKey = selectedQuote.chosen_solution_name;
+        // La estructura puede variar, adaptamos para buscar en gangedSolutions también
+        const allSolutions = [
+            selectedQuote.ganging_result.baselineSolution,
+            ...(selectedQuote.ganging_result.gangedSolutions || [])
+        ];
+        
+        let targetLayout = null;
+        for (const sol of allSolutions) {
+            if(sol && sol.layouts && sol.layouts[chosenLayoutKey]) {
+                targetLayout = sol.layouts[chosenLayoutKey];
+                break;
+            }
+        }
+        if (!targetLayout || !targetLayout.jobsInLayout) return [];
+
+        const jobCounts = {};
+        targetLayout.placements.forEach(p => {
+            jobCounts[p.id] = (jobCounts[p.id] || 0) + 1;
+        });
+        
+        return targetLayout.jobsInLayout.map(j => ({ name: j.id, quantity: jobCounts[j.id] || 0 }));
     }, [selectedQuote]);
 
     const allFilesUploaded = requiredJobs.length > 0 && requiredJobs.every(job => !!jobFiles[job.name]);
@@ -80,14 +152,28 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
         setIsLoading(true);
         setMessage('Validando y generando pliego...');
         
+        const chosenLayoutKey = selectedQuote.chosen_solution_name;
+        const allSolutions = [
+            selectedQuote.ganging_result.baselineSolution,
+            ...(selectedQuote.ganging_result.gangedSolutions || [])
+        ];
+        let targetLayout = null;
+        for (const sol of allSolutions) {
+            if(sol && sol.layouts && sol.layouts[chosenLayoutKey]) {
+                targetLayout = sol.layouts[chosenLayoutKey];
+                break;
+            }
+        }
+
         const layoutData = {
-            sheet_config: selectedQuote.ganging_result.baselineSolution.layouts[selectedQuote.chosen_solution_name].pressSheetSize,
+            sheet_config: targetLayout.pressSheetSize,
             jobs: requiredJobs.map(job => {
-                const jobDetails = selectedQuote.ganging_result.jobs.find(j => j.id === job.name);
+                const allJobs = selectedQuote.ganging_result.jobs;
+                const jobDetails = allJobs.find(j => j.id === job.name);
                 return {
                     job_name: job.name,
                     trim_box: { width: jobDetails.width, height: jobDetails.length },
-                    placements: selectedQuote.ganging_result.baselineSolution.layouts[selectedQuote.chosen_solution_name].placements.filter(p => p.id === job.name)
+                    placements: targetLayout.placements.filter(p => p.id === job.name)
                 };
             })
         };
@@ -99,10 +185,7 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
         });
 
         try {
-            const response = await fetch(`${pythonApiUrl}/generate-imposition`, {
-                method: 'POST',
-                body: formData,
-            });
+            const response = await fetch(`${pythonApiUrl}/generate-imposition`, { method: 'POST', body: formData });
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -127,40 +210,21 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
         }
     };
     
-    // Lógica para el visualizador interactivo
-    const DynamicLayoutVisualizer = ({ layout, jobFiles }) => {
-        const parentSize = layout.pressSheetSize;
-        const items = layout.placements;
-        const containerSize = 400, padding = 10;
-        const scale = Math.min((containerSize - padding) / parentSize.width, (containerSize - padding) / parentSize.length);
-        const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop: (files) => {
-            // Este es un drop genérico, necesitamos manejar el drop por cada item
-            console.log("Archivo soltado en el área general, se necesita soltar sobre un trabajo.");
-        }});
-
-        return (
-            <div {...getRootProps()} className={`p-4 border-2 border-dashed rounded-lg transition-colors ${isDragActive ? 'border-cyan-500 bg-cyan-900/20' : 'border-gray-600'}`}>
-                <input {...getInputProps()} />
-                <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
-                    {items.map((item, i) => {
-                        const { getRootProps: itemGetRootProps, getInputProps: itemGetInputProps } = useDropzone({ onDrop: (files) => onDrop(files, item.id) });
-                        const fileForJob = jobFiles[item.id];
-                        return (
-                            <div key={i} {...itemGetRootProps()} className="absolute border-2 border-dashed border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/20" style={{ left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale }}>
-                                <input {...itemGetInputProps()} />
-                                <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                                {fileForJob ? <PDFPreview file={fileForJob} /> : <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-
     if (selectedQuote) {
+        // Lógica para encontrar el layout correcto para el visualizador
+        const chosenLayoutKey = selectedQuote.chosen_solution_name;
+        const allSolutions = [
+            selectedQuote.ganging_result.baselineSolution,
+            ...(selectedQuote.ganging_result.gangedSolutions || [])
+        ];
+        let displayLayout = null;
+        for (const sol of allSolutions) {
+            if(sol && sol.layouts && sol.layouts[chosenLayoutKey]) {
+                displayLayout = sol.layouts[chosenLayoutKey];
+                break;
+            }
+        }
+
         return (
             <div className="p-6">
                 <button onClick={() => { setSelectedQuote(null); setJobFiles({}); }} className="text-cyan-400 mb-4">&larr; Volver a la búsqueda</button>
@@ -168,7 +232,7 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
                         <h3 className="font-semibold mb-2">Arrastra los PDFs sobre los trabajos en el pliego:</h3>
-                        <DynamicLayoutVisualizer layout={selectedQuote.ganging_result.baselineSolution.layouts[selectedQuote.chosen_solution_name]} jobFiles={jobFiles} />
+                        {displayLayout ? <DynamicLayoutVisualizer layout={displayLayout} jobFiles={jobFiles} onDrop={onDrop} /> : <div>No se pudo cargar el layout para visualizar.</div>}
                     </div>
                     <div>
                         <h3 className="font-semibold mb-2">Archivos Requeridos:</h3>
@@ -188,7 +252,7 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
                                 {isLoading ? <Loader2 className="animate-spin"/> : <Download />}
                                 Generar Pliego de Impresión
                             </button>
-                            {message && <p className="text-center text-sm text-gray-400 mt-3">{message}</p>}
+                            {message && <p className={`text-center text-sm mt-3 ${message.startsWith('Error') ? 'text-red-400' : 'text-gray-400'}`}>{message}</p>}
                         </div>
                     </div>
                 </div>
@@ -200,14 +264,7 @@ export const ImpositionPage = ({ supabase, pythonApiUrl }) => {
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-4">Buscar Cotización para Imponer</h1>
             <div className="flex gap-2 mb-6">
-                <input 
-                    type="text"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                    placeholder="Número de presupuesto..."
-                    className="flex-grow bg-slate-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"
-                />
+                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }} placeholder="Número de presupuesto..." className="flex-grow bg-slate-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"/>
                 <button onClick={handleSearch} disabled={isLoading} className="px-6 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors disabled:bg-gray-600">
                     {isLoading ? <Loader2 className="animate-spin"/> : <Search />}
                 </button>
