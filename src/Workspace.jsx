@@ -176,7 +176,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             </div>
             
             {(selectedSolution.summary ? gangedPlan : baseLayouts).map((layout, index) => (
-                <ProductionSheet key={layout.layoutId || index} layout={layout} />
+                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} formatCurrency={formatCurrency} formatNumber={formatNumber} />
             ))}
 
             {/* SOLUCIÓN #2: Mover la sección de archivos requeridos y el botón al final */}
