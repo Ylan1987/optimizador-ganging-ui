@@ -161,6 +161,20 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         setLoading(true);
 
         try {
+
+            console.log(`--- Iniciando procesamiento para: ${jobName} ---`);
+            const fileBuffer = await file.arrayBuffer();
+            const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
+            const page = await pdfDoc.getPage(1);
+            
+            // --- DEPURACIÓN PROFUNDA ---
+            // Mostramos el objeto 'page' completo para inspeccionarlo.
+            console.log("Objeto 'page' completo recibido de pdf.js:");
+            console.log(page);
+            
+            // Mostramos las claves (propiedades) que sí existen en el objeto.
+            console.log("Propiedades disponibles en el objeto 'page':", Object.keys(page));
+            // --- FIN DE LA DEPURACIÓN --
             const jobData = apiResponse.jobs.find(j => j.id === jobName);
             if (!jobData) throw new Error(`No se encontraron datos para el trabajo "${jobName}".`);
 
@@ -173,7 +187,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             console.log("Valor de page.trimBox:", page.trimBox);
             console.log("Valor de page.mediaBox:", page.mediaBox);
             // --- FIN DE LÍNEAS DE DEPURACIÓN ---
-        
+
             const trimBox = page.trimBox || page.mediaBox;
 
             if (!trimBox || trimBox.length !== 4) {
