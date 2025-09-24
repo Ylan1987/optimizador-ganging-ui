@@ -1,62 +1,29 @@
-// src/Workspace.jsx
 import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { Document, Page, pdfjs } from 'react-pdf';
 
 // --- COMPONENTES INTERNOS AUXILIARES ---
 
-const PDFPreview = ({ file, placementWidth, placementHeight }) => {
-    const [pdfSize, setPdfSize] = useState({ width: 0, height: 0 });
-
-    const onDocumentLoadSuccess = ({ _pdf }) => {
-        _pdf.getPage(1).then(page => {
-            const { width, height } = page.getViewport({ scale: 1 });
-            setPdfSize({ width, height });
-        });
-    };
-
-    const isPdfLandscape = pdfSize.width > pdfSize.height;
-    const isPlacementLandscape = placementWidth > placementHeight;
-    const rotation = isPdfLandscape !== isPlacementLandscape ? 90 : 0;
-
-    return (
-        <div className="w-full h-full flex items-center justify-center overflow-hidden">
-            <Document 
-                file={file} 
-                onLoadSuccess={onDocumentLoadSuccess}
-                loading={<Loader2 className="animate-spin text-white/50" />}
-                error={<XCircle className="text-red-500" title="Error al cargar PDF" />}
-            >
-                <Page 
-                    pageNumber={1} 
-                    width={150} 
-                    renderTextLayer={false} 
-                    renderAnnotationLayer={false} 
-                    rotate={rotation}
-                />
-            </Document>
-        </div>
-    );
-};
+const PDFPreview = ({ previewUrl }) => (
+    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+        <img src={previewUrl} alt="Previsualización" className="max-w-full max-h-full object-contain" />
+    </div>
+);
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id),
+        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
         noClick: true, noKeyboard: true
     });
     const itemStyle = { left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
+    
     return (
         <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
             <input {...getInputProps()} />
             <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                {fileForJob ? (
-                    <PDFPreview 
-                        file={fileForJob} 
-                        placementWidth={item.w} 
-                        placementHeight={item.h} 
-                    />
+                {fileForJob?.previewUrl ? (
+                    <PDFPreview previewUrl={fileForJob.previewUrl} />
                 ) : (
                     <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
                 )}
@@ -104,7 +71,30 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
     );
 };
 
-const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { const [isOpen, setIsOpen] = useState(defaultOpen); return ( <div className="border-t border-gray-700 last:border-b-0"> <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> <div className="flex justify-between items-center"> <div> <p className="font-semibold text-gray-200 text-sm">{title}</p> {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} </div> <div className="flex items-center gap-4"> <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} </div> </div> </button> {isOpen && details && ( <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> {details.map((item, index) => <CostAccordion key={index} {...item} />)} </div> )} </div> ); };
+const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { 
+    const [isOpen, setIsOpen] = useState(defaultOpen); 
+    return ( 
+        <div className="border-t border-gray-700 last:border-b-0"> 
+            <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> 
+                <div className="flex justify-between items-center"> 
+                    <div> 
+                        <p className="font-semibold text-gray-200 text-sm">{title}</p> 
+                        {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} 
+                    </div> 
+                    <div className="flex items-center gap-4"> 
+                        <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> 
+                        {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} 
+                    </div> 
+                </div> 
+            </button> 
+            {isOpen && details && ( 
+                <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> 
+                    {details.map((item, index) => <CostAccordion key={index} {...item} />)} 
+                </div> 
+            )} 
+        </div> 
+    ); 
+};
 
 const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop }) => {
     const costDetails = useMemo(() => {
@@ -153,76 +143,45 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     const [jobFiles, setJobFiles] = useState({});
     const [message, setMessage] = useState('');
 
-    const onDrop = useCallback(async (acceptedFiles, jobName) => {
+    const onDrop = useCallback(async (acceptedFiles, jobName, expectedWidth, expectedHeight) => {
         const file = acceptedFiles[0];
-        if (!file || !apiResponse?.jobs) return;
+        if (!jobName || !file) return;
 
-        setMessage('');
+        setMessage(`Validando "${jobName}"...`);
         setLoading(true);
 
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('expected_width', expectedWidth);
+        formData.append('expected_height', expectedHeight);
+
         try {
+            // IMPORTANTE: Reemplaza esta URL por la URL de tu API desplegada en Vercel
+            const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
+                method: 'POST',
+                body: formData,
+            });
 
+            const result = await response.json();
 
-            console.log(`--- Iniciando procesamiento para: ${jobName} ---`);
-            const fileBuffer = await file.arrayBuffer();
-            const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
-            const page = await pdfDoc.getPage(1);
-            
-            // --- DEPURACIÓN PROFUNDA ---
-            // Mostramos el objeto 'page' completo para inspeccionarlo.
-            console.log("Objeto 'page' completo recibido de pdf.js:");
-            console.log(page);
-            
-            // Mostramos las claves (propiedades) que sí existen en el objeto.
-            console.log("Propiedades disponibles en el objeto 'page':", Object.keys(page));
-            // --- FIN DE LA DEPURACIÓN --
-            /*const jobData = apiResponse.jobs.find(j => j.id === jobName);
-            if (!jobData) throw new Error(`No se encontraron datos para el trabajo "${jobName}".`);
-
-            const fileBuffer = await file.arrayBuffer();
-            const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
-            const page = await pdfDoc.getPage(1);
-            
-            // --- LÍNEAS DE DEPURACIÓN AÑADIDAS ---
-            console.log(`--- Depurando PDF para trabajo: ${jobName} ---`);
-            console.log("Valor de page.trimBox:", page.trimBox);
-            console.log("Valor de page.mediaBox:", page.mediaBox);
-            // --- FIN DE LÍNEAS DE DEPURACIÓN ---
-
-            const trimBox = page.trimBox || page.mediaBox;
-
-            if (!trimBox || trimBox.length !== 4) {
-                throw new Error("El PDF no contiene un TrimBox o MediaBox válido. No se pueden verificar las dimensiones.");
+            if (!response.ok || !result.isValid) {
+                throw new Error(result.details || result.errorMessage || 'Error desconocido del servidor.');
             }
-            const pdfWidthPt = trimBox[2] - trimBox[0];
-            const pdfHeightPt = trimBox[3] - trimBox[1];
             
-            const pdfWidthMm = pdfWidthPt * (25.4 / 72);
-            const pdfHeightMm = pdfHeightPt * (25.4 / 72);
+            setJobFiles(prev => ({ 
+                ...prev, 
+                [jobName]: { file: file, previewUrl: result.previewImage }
+            }));
+            setMessage(`Archivo para "${jobName}" validado y cargado.`);
 
-            const expectedWidth = jobData.width;
-            const expectedHeight = jobData.length;
-
-            const widthMatch = Math.abs(pdfWidthMm - expectedWidth) < 1;
-            const heightMatch = Math.abs(pdfHeightMm - expectedHeight) < 1;
-            const rotatedWidthMatch = Math.abs(pdfWidthMm - expectedHeight) < 1;
-            const rotatedHeightMatch = Math.abs(pdfHeightMm - expectedWidth) < 1;
-            
-            if ((widthMatch && heightMatch) || (rotatedWidthMatch && rotatedHeightMatch)) {
-                setJobFiles(prev => ({ ...prev, [jobName]: file }));
-                setMessage(`Archivo para "${jobName}" cargado y verificado.`);
-            } else {
-                const errorMsg = `Error en "${jobName}": El tamaño del TrimBox del PDF (${pdfWidthMm.toFixed(1)}x${pdfHeightMm.toFixed(1)}mm) no coincide con el tamaño esperado del trabajo (${expectedWidth}x${expectedHeight}mm).`;
-                alert(errorMsg);
-                setMessage(errorMsg);
-            }*/
         } catch (error) {
-            console.error("Error al procesar el PDF:", error);
-            setMessage(`Error al leer el archivo PDF: ${error.message}`);
+            console.error("Error en la validación del PDF:", error);
+            alert(`Error en "${jobName}": ${error.message}`);
+            setMessage(`Error en "${jobName}": ${error.message}`);
         } finally {
             setLoading(false);
         }
-    }, [apiResponse, setLoading]);
+    }, [setLoading]);
 
     const { baselineSolution, gangedSolutions } = apiResponse;
     const solutions = useMemo(() => {
@@ -246,14 +205,10 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     const handleSaveClick = () => {
         if (!selectedSolution) return;
-
-        // Calculamos el costo total a partir de la solución seleccionada
         const cost = selectedSolution.summary ? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost;
-
-        // Llamamos a onSaveQuote enviando el objeto 'selectedSolution' completo
         onSaveQuote(quoteNumber, selectedSolution, cost);
     };
-
+    
     const handleGenerateClick = () => {
         if (!selectedSolution) return;
         const layoutKey = selectedSolution.summary ? selectedSolution.productionPlan[0].id : Object.keys(selectedSolution.layouts)[0];
