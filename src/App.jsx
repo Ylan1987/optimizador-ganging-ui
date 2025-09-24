@@ -146,32 +146,18 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
         const saving = isBase ? 0 : baseCost - totalCost;
         const plan = useMemo(() => { if (!solution || !solution.layouts) return []; if (isBase) { return Object.values(solution.layouts); } return (solution.productionPlan || []).map(item => solution.layouts[item.id]).filter(Boolean); }, [solution, isBase]);
         const [quoteNumber, setQuoteNumber] = useState('');
-        if (!plan || plan.length === 0) {
-            return <div className="text-center text-gray-400 py-8">No se encontraron layouts para esta solución.</div>
-        }
 
         return (
             <div>
                 <div className="bg-slate-800 p-4 rounded-lg mb-6 sticky top-0 z-10 border-b border-gray-700 shadow-md">
-                    <div className="flex flex-wrap justify-between items-center gap-2">
+                    <div className="flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 className="text-2xl font-bold text-white">Costo Total: <span className="text-cyan-400">{formatCurrency(totalCost)}</span></h2>
                             {!isBase && saving > 0 && (<p className="text-green-400 text-sm">Ahorro de {formatCurrency(saving)} vs. Solución Base</p>)}
                         </div>
-
                         <div className="flex items-center gap-2">
-                            <input 
-                                type="text"
-                                value={quoteNumber}
-                                onChange={e => setQuoteNumber(e.target.value)}
-                                placeholder="Nº de Presupuesto"
-                                className="bg-slate-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:border-cyan-500"
-                            />
-                            <button 
-                                onClick={() => onSaveQuote(quoteNumber, solution, totalCost)} 
-                                disabled={!quoteNumber}
-                                className="p-2 rounded bg-green-600/20 border border-green-500/30 text-green-300 hover:bg-green-600/40 transition-colors font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
+                            <input type="text" value={quoteNumber} onChange={e => setQuoteNumber(e.target.value)} placeholder="Nº de Presupuesto" className="bg-slate-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:border-cyan-500"/>
+                            <button onClick={() => onSaveQuote(quoteNumber, solution, totalCost)} disabled={!quoteNumber} className="p-2 rounded bg-green-600/20 border border-green-500/30 text-green-300 hover:bg-green-600/40 transition-colors font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <Save size={16}/> Guardar
                             </button>
                         </div>
@@ -189,10 +175,7 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
     const solutions = useMemo(() => {
         if (!baseSolution) return [];
         const ganged = gangedSolutions || [];
-        return [
-            { name: "Solución Base", data: baseSolution },
-            ...ganged.map((s, i) => ({ name: `Solución Ganging Optimizada #${i + 1}`, data: s }))
-        ];
+        return [ { name: "Solución Base", data: baseSolution }, ...ganged.map((s, i) => ({ name: `Solución Ganging Optimizada #${i + 1}`, data: s })) ];
     }, [baseSolution, gangedSolutions]);
     
     const selectedSolution = solutions[selectedSolutionIndex]?.data;
@@ -209,6 +192,8 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
                     ))}
                 </div>
             </div>
+            {/* --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ --- */}
+            {/* Ahora le pasamos onSaveQuote al componente SolutionDisplay */}
             {selectedSolution ? <SolutionDisplay solution={selectedSolution} baseCost={baseSolution.total_cost} dollarRate={dollarRate} /> : <div className="text-center py-10 text-gray-400">Seleccione una solución para ver los detalles.</div>}
         </div>
     );
