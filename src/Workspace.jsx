@@ -203,7 +203,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         } finally {
             setLoading(false);
         }
-    }, [apiResponse.jobs, setLoading]);
+    }, [apiResponse, setLoading]);
 
     const { baselineSolution, gangedSolutions } = apiResponse;
     const solutions = useMemo(() => {
