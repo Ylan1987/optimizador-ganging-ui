@@ -120,7 +120,8 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     const [message, setMessage] = useState('');
 
     const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
-
+    const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
+    
     const onDrop = useCallback((acceptedFiles, jobName) => {
         const file = acceptedFiles[0];
         if (file) { setJobFiles(prev => ({ ...prev, [jobName]: file })); }
