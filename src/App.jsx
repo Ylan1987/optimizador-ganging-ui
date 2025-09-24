@@ -28,7 +28,7 @@ const ToggleSwitch = ({ label, enabled, onChange }) => ( <div className="flex it
 // #################################################################################
 // ####### COMPONENTE 1: VISUALIZADOR DE RESULTADOS (CORREGIDO) #######
 // #################################################################################
-const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) => { // <--- Añadido onSaveQuote
+/*const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) => { // <--- Añadido onSaveQuote
     const { baselineSolution: baseSolution, gangedSolutions } = apiResponse;
     const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
     const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
@@ -199,6 +199,7 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
         </div>
     );
 };
+
 // #################################################################################
 // ####### COMPONENTE 2: PÁGINA DE CONFIGURACIÓN DE MÁQUINAS #######
 // #################################################################################
@@ -394,6 +395,55 @@ export default function App() {
         setCurrentPage('workspace');
     };
 
+    const handleGenerateImposition = async (layout, requiredJobs, jobFiles, allJobsInApiResponse, quoteNumber, localSetMessage) => {
+        localSetMessage('Validando y generando pliego...');
+        setLoading(true);
+        
+        try {
+            const layoutData = {
+                sheet_config: layout.pressSheetSize,
+                jobs: requiredJobs.map(job => {
+                    const jobDetails = allJobsInApiResponse.find(j => j.id === job.name);
+                    return {
+                        job_name: job.name,
+                        trim_box: { width: jobDetails.width, height: jobDetails.length },
+                        placements: layout.placements.filter(p => p.id === job.name)
+                    };
+                })
+            };
+
+            const formData = new FormData();
+            formData.append('layout_data', JSON.stringify(layoutData));
+            requiredJobs.forEach(job => {
+                formData.append('files', jobFiles[job.name], job.name);
+            });
+
+            const pythonApiUrl = 'https://preprensa-api-git-main-ylan1987.vercel.app/api'; // O la URL de tu API de Python
+            const response = await fetch(`${pythonApiUrl}/generate-imposition`, { method: 'POST', body: formData });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Error en la API de imposición.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `imposicion_${quoteNumber || 'pliego'}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            localSetMessage('Pliego generado con éxito.');
+
+        } catch (error) {
+            localSetMessage(`Error: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
      const handleSaveQuote = async (quoteNumber, solutionData, totalCost) => {
         setLoading(true);
         try {
@@ -517,14 +567,30 @@ export default function App() {
                 return <Workspace 
                             apiResponse={optimizationResult}
                             onBack={() => { setOptimizationResult(null); setCurrentPage('cotizador'); }}
-                            onSaveQuote={handleSaveQuote} // La función que ya tenías
-                            onGenerateImposition={() => { /* Lógica futura */ }} // Lo conectaremos después
+                            onSaveQuote={handleSaveQuote}
+                            onGenerateImposition={handleGenerateImposition}
                             dollarRate={config.settings.dollarRate}
                             isLoading={loading}
+                            setLoading={setLoading}
                         />;
             case 'imposicion':
                 return <ImpositionPage supabase={supabase} onSelectQuote={handleLoadQuote} />;
-            // ... el resto de tus casos para 'maquinas', 'materiales', etc. sigue igual
+            case 'imposicion':
+                return <ImpositionPage supabase={supabase} onSelectQuote={handleLoadQuote} />;
+            
+            case 'maquinas':
+                return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
+            
+            case 'materiales':
+                return <MaterialsAdminPage initialData={config.materials} onSave={handleSave} />;
+            
+            case 'cortes':
+                return <CutsAdminPage initialData={config.cuts} onSave={handleSave} />;
+            
+            case 'general':
+                return <GeneralSettingsPage initialData={config.settings} onSave={handleSave} />;
+            default:
+                return <div>Página no encontrada</div>;
         }
         switch (currentPage) {
             case 'maquinas': return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
