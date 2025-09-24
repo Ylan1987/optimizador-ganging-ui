@@ -7,17 +7,23 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 // SOLUCIÓN #1: URL del PDF Worker corregida a la versión .js estándar y estable.
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+//pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 // --- COMPONENTES INTERNOS AUXILIARES ---
 
-const PDFPreview = ({ file }) => (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden">
-        <Document file={file} loading={<Loader2 className="animate-spin text-white/50" />}>
-            <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
-        </Document>
-    </div>
-);
+const PDFPreview = ({ file }) => {
+    const options = {
+        workerSrc: "/pdf.worker.min.js",
+    };
+
+    return (
+        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <Document file={file} options={options} loading={<Loader2 className="animate-spin text-white/50" />}>
+                <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
+            </Document>
+        </div>
+    );
+};
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -121,7 +127,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
     const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
-    
+
     const onDrop = useCallback((acceptedFiles, jobName) => {
         const file = acceptedFiles[0];
         if (file) { setJobFiles(prev => ({ ...prev, [jobName]: file })); }
