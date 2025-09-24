@@ -2,29 +2,20 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, FileText, CheckCircle2, XCircle, Loader2, Download, Save, ArrowLeft } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
+import { Document, Page } from 'react-pdf';
 
-// SOLUCIÓN #1: URL del PDF Worker corregida a la versión .js estándar y estable.
-//pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+// Ya no se necesita la configuración global de pdfjs, la nueva versión lo maneja automáticamente.
 
-// --- COMPONENTES INTERNOS AUXILIARES ---
+// --- COMPONENTES INTERNOS ---
 
-  const PDFPreview = ({ file }) => {
-      const options = {
-          // Esta es la forma correcta de decirle a react-pdf dónde encontrar el worker
-          workerSrc: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`,
-      };
-  
-      return (
-          <div className="w-full h-full flex items-center justify-center overflow-hidden">
-              <Document file={file} options={options} loading={<Loader2 className="animate-spin text-white/50" />}>
-                  <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
-              </Document>
-          </div>
-      );
-  };
+const PDFPreview = ({ file }) => (
+    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+        {/* Ya no se pasa la prop 'options', no es necesaria */}
+        <Document file={file} loading={<Loader2 className="animate-spin text-white/50" />}>
+            <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
+        </Document>
+    </div>
+);
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -42,6 +33,9 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
         </div>
     );
 };
+
+const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
+const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
 
 const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false }) => {
     const { parentSize, items, parentLabel, footerText, title } = layoutData;
@@ -79,19 +73,22 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
     );
 };
 
-const CostAccordion = ({ title, value, formula, details, defaultOpen = false, formatCurrency }) => { const [isOpen, setIsOpen] = useState(defaultOpen); return ( <div className="border-t border-gray-700 last:border-b-0"> <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> <div className="flex justify-between items-center"> <div> <p className="font-semibold text-gray-200 text-sm">{title}</p> {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} </div> <div className="flex items-center gap-4"> <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} </div> </div> </button> {isOpen && details && ( <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> {details.map((item, index) => <CostAccordion key={index} {...item} formatCurrency={formatCurrency} />)} </div> )} </div> ); };
+const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { const [isOpen, setIsOpen] = useState(defaultOpen); return ( <div className="border-t border-gray-700 last:border-b-0"> <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> <div className="flex justify-between items-center"> <div> <p className="font-semibold text-gray-200 text-sm">{title}</p> {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} </div> <div className="flex items-center gap-4"> <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} </div> </div> </button> {isOpen && details && ( <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> {details.map((item, index) => <CostAccordion key={index} {...item} />)} </div> )} </div> ); };
 
-const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, formatCurrency, formatNumber }) => {
-    // SOLUCIÓN #4: Se restaura la lógica de costos detallada y correcta del GangingOptimizerUI original.
+const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop }) => {
     const costDetails = useMemo(() => {
-         const pCost = layout.costBreakdown.printingCost;
+        const pCost = layout.costBreakdown.printingCost;
         const mNeeds = layout.materialNeeds;
         const pNeeds = layout.printNeeds;
         const machine = layout.machine;
         const chargeableImpressions = Math.max(layout.sheetsToPrint, machine.minImpressionsCharge || 0);
-         return [ { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [ { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales", details: [{ title: "Cálculo", value: pCost.setupCost, formula: `${formatCurrency(machine.setupCost.price || 0)} × ${pNeeds.totalPlates} planchas` }] }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas`, details: [{ title: "Cálculo", value: pCost.impressionCost, formula: `${formatNumber(chargeableImpressions)} pliegos × (${formatCurrency(machine.impressionCost.pricePerThousand || 0)} / 1000) × ${pNeeds.passes}` }] } ]}, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [ { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${formatNumber(mNeeds.factorySheets.quantityNeeded)} hojas × ${formatCurrency(mNeeds.totalMaterialCost / (mNeeds.factorySheets.quantityNeeded || 1))} p/hoja`, details: [{ title: 'Nivel Cálculo', value: mNeeds.totalMaterialCost, formula: `(${formatNumber(mNeeds.factorySheets.quantityNeeded)}h*${mNeeds.factorySheets.size.width/1000}m*${mNeeds.factorySheets.size.length/1000}m*${mNeeds.factorySheets.size.usdPerTon}USD/t*${layout.jobsInLayout[0]?.material?.grammage || 'N/A'}g)*$${dollarRate}` }] } ]} ];
-    }, [layout, dollarRate, formatCurrency, formatNumber]);
-    const technicalDetails = useMemo(() => { const { printNeeds, materialNeeds, sheetsToPrint, machine, pressSheetSize } = layout; return [ { title: "Pliegos a Imprimir", value: `${formatNumber(sheetsToPrint)} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${formatNumber(materialNeeds.factorySheets.quantityNeeded)} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ]; }, [layout, formatNumber]);
+        return [ { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [ { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales", details: [{ title: "Cálculo", value: pCost.setupCost, formula: `${formatCurrency(machine.setupCost.price || 0)} × ${pNeeds.totalPlates} planchas` }] }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas`, details: [{ title: "Cálculo", value: pCost.impressionCost, formula: `${formatNumber(chargeableImpressions)} pliegos × (${formatCurrency(machine.impressionCost.pricePerThousand || 0)} / 1000) × ${pNeeds.passes}` }] } ]}, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [ { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${formatNumber(mNeeds.factorySheets.quantityNeeded)} hojas × ${formatCurrency(mNeeds.totalMaterialCost / (mNeeds.factorySheets.quantityNeeded || 1))} p/hoja`, details: [{ title: 'Nivel Cálculo', value: mNeeds.totalMaterialCost, formula: `(${formatNumber(mNeeds.factorySheets.quantityNeeded)}h*${mNeeds.factorySheets.size.width/1000}m*${mNeeds.factorySheets.size.length/1000}m*${mNeeds.factorySheets.size.usdPerTon}USD/t*${layout.jobsInLayout[0]?.material?.grammage || 'N/A'}g)*$${dollarRate}` }] } ]} ];
+    }, [layout, dollarRate]);
+
+    const technicalDetails = useMemo(() => {
+        const { printNeeds, materialNeeds, sheetsToPrint, machine, pressSheetSize } = layout;
+        return [ { title: "Pliegos a Imprimir", value: `${formatNumber(sheetsToPrint)} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${formatNumber(materialNeeds.factorySheets.quantityNeeded)} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ];
+    }, [layout]);
 
     const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${layout.materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`};
     const panelB_Data = { title: "Panel B: Imposición en Pliego (Interactivo)", parentSize: layout.pressSheetSize, items: layout.placements, parentLabel: `Pliego ${layout.pressSheetSize.width}x${layout.pressSheetSize.length}`, footerText: `Imprimir <strong class="text-cyan-300">${formatNumber(layout.sheetsToPrint)} + ${layout.machine.overage.amount} demasía</strong> en pliegos.`};
@@ -103,7 +100,7 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, formatCurrency,
                 <div className="md:col-span-3 space-y-6">
                     <div>
                         <h4 className="font-semibold text-gray-300 mb-2">Desglose de Costos</h4>
-                        <div className="bg-gray-900/50 rounded-md overflow-hidden border border-gray-700">{costDetails.map((item, i) => <CostAccordion key={i} {...item} formatCurrency={formatCurrency} defaultOpen={i===0}/>)}</div>
+                        <div className="bg-gray-900/50 rounded-md overflow-hidden border border-gray-700">{costDetails.map((item, i) => <CostAccordion key={i} {...item} defaultOpen={i===0}/>)}</div>
                     </div>
                     <div>
                         <h4 className="font-semibold text-gray-300 mb-2">Requerimientos Técnicos</h4>
@@ -119,15 +116,11 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, formatCurrency,
     );
 };
 
-// --- COMPONENTE PRINCIPAL DEL WORKSPACE ---
 export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImposition, dollarRate, isLoading }) => {
     const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
     const [quoteNumber, setQuoteNumber] = useState(apiResponse.quote_number || '');
     const [jobFiles, setJobFiles] = useState({});
     const [message, setMessage] = useState('');
-
-    const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
-    const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
 
     const onDrop = useCallback((acceptedFiles, jobName) => {
         const file = acceptedFiles[0];
@@ -154,9 +147,21 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         return { requiredJobs: jobs, allFilesUploaded: allUploaded };
     }, [selectedSolution, jobFiles]);
 
-    const handleSaveClick = () => { /* ... (código sin cambios) ... */ };
-    const handleGenerateClick = () => { /* ... (código sin cambios) ... */ };
-    
+    const handleSaveClick = () => {
+        if (!selectedSolution) return;
+        const layoutKey = selectedSolution.summary ? selectedSolution.productionPlan[0].id : Object.keys(selectedSolution.layouts)[0];
+        const cost = selectedSolution.summary ? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost;
+        onSaveQuote(quoteNumber, layoutKey, cost);
+    };
+
+    const handleGenerateClick = () => {
+        if (!selectedSolution) return;
+        const layoutKey = selectedSolution.summary ? selectedSolution.productionPlan[0].id : Object.keys(selectedSolution.layouts)[0];
+        const layout = selectedSolution.layouts[layoutKey];
+        const allJobsInApiResponse = apiResponse.jobs;
+        onGenerateImposition(layout, requiredJobs, jobFiles, allJobsInApiResponse, quoteNumber, setMessage);
+    };
+
     if (!selectedSolution) return <div className="p-6 text-center text-gray-400">Cargando solución...</div>;
     
     const baseLayouts = Object.values(baselineSolution.layouts);
@@ -184,10 +189,9 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             </div>
             
             {(selectedSolution.summary ? gangedPlan : baseLayouts).map((layout, index) => (
-                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} formatCurrency={formatCurrency} formatNumber={formatNumber} />
+                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} formatCurrency={formatCurrency} formatNumber={formatNumber}/>
             ))}
 
-            {/* SOLUCIÓN #2: Mover la sección de archivos requeridos y el botón al final */}
             <div className="bg-slate-800/50 border border-gray-700 rounded-lg mt-6 shadow-lg p-4">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
                     <div className="md:col-span-4">
