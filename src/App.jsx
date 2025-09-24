@@ -613,4 +613,3 @@ export default function App() {
              color: #F9FAFB; } `}
             </style> </div> );
 }
-export default App;
