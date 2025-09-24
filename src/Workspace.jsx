@@ -221,9 +221,10 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     const handleSaveClick = () => {
         if (!selectedSolution) return;
-        const layoutKey = selectedSolution.summary ? selectedSolution.productionPlan[0].id : Object.keys(selectedSolution.layouts)[0];
+        // Calculamos el costo total a partir de la solución seleccionada
         const cost = selectedSolution.summary ? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost;
-        onSaveQuote(quoteNumber, layoutKey, cost);
+        // Llamamos a onSaveQuote enviando el objeto 'selectedSolution' completo
+        onSaveQuote(quoteNumber, selectedSolution, cost);
     };
 
     const handleGenerateClick = () => {
