@@ -1,21 +1,47 @@
 // src/Workspace.jsx
 import React, { useState, useMemo, useCallback } from 'react';
-import { ChevronDown, FileText, CheckCircle2, XCircle, Loader2, Download, Save, ArrowLeft } from 'lucide-react';
+import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { Document, Page } from 'react-pdf';
-
-// Con la versión 9 de react-pdf y las dependencias correctas,
-// ya no se necesita ninguna configuración manual del worker.
+import { Document, Page, pdfjs } from 'react-pdf';
 
 // --- COMPONENTES INTERNOS AUXILIARES ---
 
-const PDFPreview = ({ file }) => (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden">
-        <Document file={file} loading={<Loader2 className="animate-spin text-white/50" />}>
-            <Page pageNumber={1} width={150} renderTextLayer={false} renderAnnotationLayer={false} />
-        </Document>
-    </div>
-);
+const PDFPreview = ({ file, placementWidth, placementHeight }) => {
+    const [pdfSize, setPdfSize] = useState({ width: 0, height: 0 });
+
+    const onDocumentLoadSuccess = ({ _pdf }) => {
+        _pdf.getPage(1).then(page => {
+            const { width, height } = page.getViewport({ scale: 1 });
+            setPdfSize({ width, height });
+        });
+    };
+
+    // Comparamos la orientación (aspect ratio) del PDF con la del espacio en el pliego
+    const isPdfLandscape = pdfSize.width > pdfSize.height;
+    const isPlacementLandscape = placementWidth > placementHeight;
+
+    // Si las orientaciones no coinciden, rotamos 90 grados
+    const rotation = isPdfLandscape !== isPlacementLandscape ? 90 : 0;
+
+    return (
+        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <Document 
+                file={file} 
+                onLoadSuccess={onDocumentLoadSuccess}
+                loading={<Loader2 className="animate-spin text-white/50" />}
+                error={<XCircle className="text-red-500" title="Error al cargar PDF" />}
+            >
+                <Page 
+                    pageNumber={1} 
+                    width={150} 
+                    renderTextLayer={false} 
+                    renderAnnotationLayer={false} 
+                    rotate={rotation} // <-- AQUÍ SE APLICA LA ROTACIÓN
+                />
+            </Document>
+        </div>
+    );
+};
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -28,7 +54,15 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
         <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
             <input {...getInputProps()} />
             <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                {fileForJob ? <PDFPreview file={fileForJob} /> : <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>}
+                {fileForJob ? (
+                    <PDFPreview 
+                        file={fileForJob} 
+                        placementWidth={item.w} 
+                        placementHeight={item.h} 
+                    />
+                ) : (
+                    <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
+                )}
             </div>
         </div>
     );
@@ -116,16 +150,60 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop }) => {
     );
 };
 
-export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImposition, dollarRate, isLoading }) => {
+export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImposition, dollarRate, isLoading, setLoading }) => {
     const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
     const [quoteNumber, setQuoteNumber] = useState(apiResponse.quote_number || '');
     const [jobFiles, setJobFiles] = useState({});
     const [message, setMessage] = useState('');
 
-    const onDrop = useCallback((acceptedFiles, jobName) => {
+    const onDrop = useCallback(async (acceptedFiles, jobName) => {
         const file = acceptedFiles[0];
-        if (file) { setJobFiles(prev => ({ ...prev, [jobName]: file })); }
-    }, []);
+        if (!file) return;
+
+        setMessage('');
+        setLoading(true);
+
+        try {
+            const jobData = apiResponse.jobs.find(j => j.id === jobName);
+            if (!jobData) throw new Error(`No se encontraron datos para el trabajo "${jobName}".`);
+
+            const fileBuffer = await file.arrayBuffer();
+            const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
+            const page = await pdfDoc.getPage(1);
+            
+            // pdfjs devuelve el trimBox en puntos [x1, y1, x2, y2]
+            const trimBox = page.trimBox || page.mediaBox; // Usa mediaBox como fallback
+            const pdfWidthPt = trimBox[2] - trimBox[0];
+            const pdfHeightPt = trimBox[3] - trimBox[1];
+            
+            // Convertimos de puntos a milímetros
+            const pdfWidthMm = pdfWidthPt * (25.4 / 72);
+            const pdfHeightMm = pdfHeightPt * (25.4 / 72);
+
+            const expectedWidth = jobData.width;
+            const expectedHeight = jobData.length;
+
+            // Validamos con una tolerancia de 1mm, permitiendo rotación
+            const widthMatch = Math.abs(pdfWidthMm - expectedWidth) < 1;
+            const heightMatch = Math.abs(pdfHeightMm - expectedHeight) < 1;
+            const rotatedWidthMatch = Math.abs(pdfWidthMm - expectedHeight) < 1;
+            const rotatedHeightMatch = Math.abs(pdfHeightMm - expectedWidth) < 1;
+            
+            if ((widthMatch && heightMatch) || (rotatedWidthMatch && rotatedHeightMatch)) {
+                setJobFiles(prev => ({ ...prev, [jobName]: file }));
+                setMessage(`Archivo para "${jobName}" cargado y verificado.`);
+            } else {
+                const errorMsg = `Error en "${jobName}": El tamaño del TrimBox del PDF (${pdfWidthMm.toFixed(1)}x${pdfHeightMm.toFixed(1)}mm) no coincide con el tamaño esperado del trabajo (${expectedWidth}x${expectedHeight}mm).`;
+                alert(errorMsg); // Usamos un alert para que sea inmediato y claro
+                setMessage(errorMsg);
+            }
+        } catch (error) {
+            console.error("Error al procesar el PDF:", error);
+            setMessage(`Error al leer el archivo PDF: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    }, [apiResponse.jobs, setLoading]);
 
     const { baselineSolution, gangedSolutions } = apiResponse;
     const solutions = useMemo(() => {
@@ -205,13 +283,13 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                                 </div>
                             ))}
                         </div>
+                         {message && <p className={`text-left text-sm mt-3 ${message.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{message}</p>}
                     </div>
                     <div className="md:col-span-1">
                         <button onClick={handleGenerateClick} disabled={!allFilesUploaded || isLoading} className="w-full px-6 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 disabled:bg-gray-600 flex items-center justify-center gap-2">
                             {isLoading ? <Loader2 className="animate-spin"/> : <Download />}
                             Generar Pliego
                         </button>
-                        {message && <p className={`text-center text-sm mt-3 ${message.startsWith('Error') ? 'text-red-400' : 'text-gray-400'}`}>{message}</p>}
                     </div>
                 </div>
             </div>
