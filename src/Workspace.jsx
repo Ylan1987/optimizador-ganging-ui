@@ -6,7 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// CORRECCIÓN 2: Usar una versión específica y estable del worker
+// CORRECCIÓN #1: URL del PDF Worker corregida a una versión estable y funcional.
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.188/pdf.worker.min.js`;
 
 // --- COMPONENTES INTERNOS ---
@@ -37,11 +37,13 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
     );
 };
 
-const DynamicLayoutVisualizer = ({ layout, jobFiles, onDrop, isInteractive = false }) => {
-    const parentSize = layout.pressSheetSize || layout.materialNeeds.factorySheets.size;
-    const items = layout.placements || layout.materialNeeds.factorySheets.cuttingPlan.positions;
-    const parentLabel = layout.pressSheetSize ? `Pliego ${parentSize.width}x${parentSize.length}` : `Hoja Fábrica ${parentSize.width}x${parentSize.length}`;
-    const itemLabelPrefix = layout.pressSheetSize ? "" : "Pliego";
+const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false }) => {
+    const parentSize = layoutData.parentSize;
+    const items = layoutData.items;
+    const parentLabel = layoutData.parentLabel;
+    const itemLabelPrefix = layoutData.itemLabelPrefix || "";
+    const footerText = layoutData.footerText;
+    
     const containerSize = 250, padding = 10;
     const scale = Math.min((containerSize - padding) / (parentSize.width || 1), (containerSize - padding) / (parentSize.length || 1));
      
@@ -54,14 +56,10 @@ const DynamicLayoutVisualizer = ({ layout, jobFiles, onDrop, isInteractive = fal
         return colorMap;
     }, [items]);
 
-    const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
-
-    const title = parentLabel.includes('Pliego') 
-        ? (isInteractive ? 'Panel B: Imposición en Pliego (Interactivo)' : 'Panel B: Imposición en Pliego')
-        : 'Panel A: Plan de Corte Gráfico';
+    const title = layoutData.title;
 
     return (
-        <div className="bg-gray-900/50 p-3 rounded-md flex flex-col items-center justify-center">
+        <div className="bg-gray-900/50 p-3 rounded-md flex flex-col items-center justify-center h-full">
             <h4 className="font-semibold text-sm text-center text-white mb-2">{title}</h4>
             <div className={`p-2 border-2 border-dashed ${isInteractive ? 'border-transparent' : 'border-gray-600'} text-center`}>
                 <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
@@ -77,19 +75,18 @@ const DynamicLayoutVisualizer = ({ layout, jobFiles, onDrop, isInteractive = fal
                     })}
                 </div>
             </div>
-            {layout.pressSheetSize && <p className="text-xs text-gray-400 text-center mt-3 max-w-xs mx-auto">Imprimir <strong className="text-cyan-300">{formatNumber(layout.sheetsToPrint)} + {layout.machine.overage.amount} demasía</strong> en pliegos.</p>}
-            {!layout.pressSheetSize && <p className="text-xs text-gray-400 text-center mt-3 max-w-xs">Se necesitan <strong className="text-cyan-300">{formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong className="text-cyan-300">{layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.</p>}
+            <p className="text-xs text-gray-400 text-center mt-3 max-w-xs mx-auto" dangerouslySetInnerHTML={{ __html: footerText }} />
         </div>
     );
 };
 
-// --- COMPONENTE PRINCIPAL DEL WORKSPACE ---
+
 export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImposition, dollarRate, isLoading }) => {
     // --- ESTADO Y FUNCIONES LOCALES DEL WORKSPACE ---
     const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
     const [quoteNumber, setQuoteNumber] = useState(apiResponse.quote_number || '');
     const [jobFiles, setJobFiles] = useState({});
-    const [message, setMessage] = useState(''); // Estado local para mensajes
+    const [message, setMessage] = useState('');
 
     const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
     const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
@@ -138,7 +135,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     if (!selectedSolution) return <div className="p-6 text-center text-gray-400">Cargando solución...</div>;
 
-    // RESTAURACIÓN DE TUS COMPONENTES ORIGINALES
+    // --- RESTAURACIÓN DE TUS COMPONENTES ORIGINALES ---
     const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { const [isOpen, setIsOpen] = useState(defaultOpen); return ( <div className="border-t border-gray-700 last:border-b-0"> <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> <div className="flex justify-between items-center"> <div> <p className="font-semibold text-gray-200 text-sm">{title}</p> {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} </div> <div className="flex items-center gap-4"> <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} </div> </div> </button> {isOpen && details && ( <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> {details.map((item, index) => <CostAccordion key={index} {...item} />)} </div> )} </div> ); };
     const ProductionSheet = ({ layout }) => {
         const costDetails = useMemo(() => {
@@ -150,6 +147,21 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
              return [ { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [ { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales" }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas` } ]}, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [ { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${formatNumber(mNeeds.factorySheets.quantityNeeded)} hojas × ${formatCurrency(mNeeds.totalMaterialCost / (mNeeds.factorySheets.quantityNeeded || 1))} p/hoja` } ]} ];
         }, [layout]);
         const technicalDetails = useMemo(() => { const { printNeeds, materialNeeds, sheetsToPrint, machine, pressSheetSize } = layout; return [ { title: "Pliegos a Imprimir", value: `${formatNumber(sheetsToPrint)} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${formatNumber(materialNeeds.factorySheets.quantityNeeded)} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ]; }, [layout]);
+
+        const panelA_Data = {
+            title: "Panel A: Plan de Corte Gráfico",
+            parentSize: layout.materialNeeds.factorySheets.size,
+            items: layout.materialNeeds.factorySheets.cuttingPlan.positions,
+            parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${layout.materialNeeds.factorySheets.size.length}`,
+            footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`
+        };
+        const panelB_Data = {
+            title: "Panel B: Imposición en Pliego (Interactivo)",
+            parentSize: layout.pressSheetSize,
+            items: layout.placements,
+            parentLabel: `Pliego ${layout.pressSheetSize.width}x${layout.pressSheetSize.length}`,
+            footerText: `Imprimir <strong class="text-cyan-300">${formatNumber(layout.sheetsToPrint)} + ${layout.machine.overage.amount} demasía</strong> en pliegos.`
+        };
 
         return (
             <div className="bg-slate-800/50 border border-gray-700 rounded-lg mb-6 shadow-lg overflow-hidden">
@@ -165,18 +177,10 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                             <div className="bg-gray-900/50 rounded-md border border-gray-700 text-xs p-2 space-y-1.5">{technicalDetails.map((item, i) => (<div key={i} className="flex justify-between items-baseline gap-2 border-b border-gray-800 pb-1 last:border-b-0"><span className="text-gray-400 font-medium whitespace-nowrap">{item.title}</span><span className="text-gray-200 font-mono text-right">{item.value}</span></div>))}</div>
                         </div>
                     </div>
+                    {/* CORRECCIÓN #3 y #4: Se restaura el layout original con Panel A y B separados y correctos */}
                     <div className="md:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                         {/* CORRECCIÓN 1: Lógica para mostrar Panel A y Panel B */}
-                        <DynamicLayoutVisualizer 
-                           layout={{...layout, pressSheetSize: layout.materialNeeds.factorySheets.size, placements: layout.materialNeeds.factorySheets.cuttingPlan.positions}} 
-                           isInteractive={false} 
-                       />
-                       <DynamicLayoutVisualizer 
-                           layout={layout} 
-                           jobFiles={jobFiles} 
-                           onDrop={onDrop} 
-                           isInteractive={true} 
-                       />
+                       <DynamicLayoutVisualizer layoutData={panelA_Data} isInteractive={false} />
+                       <DynamicLayoutVisualizer layoutData={panelB_Data} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} />
                     </div>
                 </div>
             </div>
