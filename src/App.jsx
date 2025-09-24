@@ -3,6 +3,9 @@ import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Set
 import { createClient } from '@supabase/supabase-js';
 import { ImpositionPage } from './ImpositionPage';
 import { Workspace } from './Workspace';
+import { pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
