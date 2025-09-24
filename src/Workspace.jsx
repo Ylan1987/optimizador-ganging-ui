@@ -162,6 +162,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
         try {
 
+
             console.log(`--- Iniciando procesamiento para: ${jobName} ---`);
             const fileBuffer = await file.arrayBuffer();
             const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
@@ -175,7 +176,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             // Mostramos las claves (propiedades) que sí existen en el objeto.
             console.log("Propiedades disponibles en el objeto 'page':", Object.keys(page));
             // --- FIN DE LA DEPURACIÓN --
-            const jobData = apiResponse.jobs.find(j => j.id === jobName);
+            /*const jobData = apiResponse.jobs.find(j => j.id === jobName);
             if (!jobData) throw new Error(`No se encontraron datos para el trabajo "${jobName}".`);
 
             const fileBuffer = await file.arrayBuffer();
@@ -214,7 +215,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 const errorMsg = `Error en "${jobName}": El tamaño del TrimBox del PDF (${pdfWidthMm.toFixed(1)}x${pdfHeightMm.toFixed(1)}mm) no coincide con el tamaño esperado del trabajo (${expectedWidth}x${expectedHeight}mm).`;
                 alert(errorMsg);
                 setMessage(errorMsg);
-            }
+            }*/
         } catch (error) {
             console.error("Error al procesar el PDF:", error);
             setMessage(`Error al leer el archivo PDF: ${error.message}`);
