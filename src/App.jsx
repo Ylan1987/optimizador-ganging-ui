@@ -4,8 +4,13 @@ import { createClient } from '@supabase/supabase-js';
 import { ImpositionPage } from './ImpositionPage';
 import { Workspace } from './Workspace';
 import { pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css'; // Importa los estilos
+import 'react-pdf/dist/esm/Page/TextLayer.css';     // Importa los estilos
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
@@ -608,3 +613,4 @@ export default function App() {
              color: #F9FAFB; } `}
             </style> </div> );
 }
+export default App;
