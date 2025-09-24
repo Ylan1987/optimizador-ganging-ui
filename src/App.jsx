@@ -503,7 +503,7 @@ export default function App() {
         if (error) { return <div className="text-center p-4 text-red-400"><h1>Error de Conexión</h1><p>{error}</p></div>; }
         if (currentPage === 'cotizador') {
             return optimizationResult 
-                ? <GangingOptimizerUI apiResponse={optimizationResult} onBack={() => setOptimizationResult(null)} dollarRate={config.settings.dollarRate} />
+                ? <GangingOptimizerUI apiResponse={optimizationResult} onBack={() => setOptimizationResult(null)} onSaveQuote={handleSaveQuote} dollarRate={config.settings.dollarRate} />
                 : <JobsInputPage onOptimize={handleOptimize} materialsData={config.materials}/>;
         }
             // --- AÑADIMOS LA NUEVA PÁGINA ---
