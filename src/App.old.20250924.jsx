@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Settings, Printer, Scissors, Calculator, Wand2, Loader2, Save } from 'lucide-react';
+import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Settings, Printer, Scissors, Calculator, Wand2, Loader2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
-import { ImpositionPage } from './ImpositionPage';
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
 
 let supabase;
 if (supabaseUrl && supabaseAnonKey) {
@@ -27,7 +27,7 @@ const ToggleSwitch = ({ label, enabled, onChange }) => ( <div className="flex it
 // #################################################################################
 // ####### COMPONENTE 1: VISUALIZADOR DE RESULTADOS (CORREGIDO) #######
 // #################################################################################
-const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) => { // <--- Añadido onSaveQuote
+const GangingOptimizerUI = ({ apiResponse, onBack, dollarRate }) => {
     const { baselineSolution: baseSolution, gangedSolutions } = apiResponse;
     const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
     const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
@@ -145,7 +145,7 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
         const totalCost = isBase ? solution.total_cost : (solution.summary ? solution.summary.gangedTotalCost : 0);
         const saving = isBase ? 0 : baseCost - totalCost;
         const plan = useMemo(() => { if (!solution || !solution.layouts) return []; if (isBase) { return Object.values(solution.layouts); } return (solution.productionPlan || []).map(item => solution.layouts[item.id]).filter(Boolean); }, [solution, isBase]);
-        const [quoteNumber, setQuoteNumber] = useState('');
+
         if (!plan || plan.length === 0) {
             return <div className="text-center text-gray-400 py-8">No se encontraron layouts para esta solución.</div>
         }
@@ -157,23 +157,6 @@ const GangingOptimizerUI = ({ apiResponse, onBack, onSaveQuote, dollarRate }) =>
                         <div>
                             <h2 className="text-2xl font-bold text-white">Costo Total: <span className="text-cyan-400">{formatCurrency(totalCost)}</span></h2>
                             {!isBase && saving > 0 && (<p className="text-green-400 text-sm">Ahorro de {formatCurrency(saving)} vs. Solución Base</p>)}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <input 
-                                type="text"
-                                value={quoteNumber}
-                                onChange={e => setQuoteNumber(e.target.value)}
-                                placeholder="Nº de Presupuesto"
-                                className="bg-slate-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:border-cyan-500"
-                            />
-                            <button 
-                                onClick={() => onSaveQuote(quoteNumber, solution, totalCost)} 
-                                disabled={!quoteNumber}
-                                className="p-2 rounded bg-green-600/20 border border-green-500/30 text-green-300 hover:bg-green-600/40 transition-colors font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Save size={16}/> Guardar
-                            </button>
                         </div>
                         <button onClick={onBack} className="p-2 rounded bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors font-semibold flex items-center gap-2"><ArrowLeft size={16}/> Volver a Trabajos</button>
                     </div>
@@ -401,42 +384,6 @@ export default function App() {
         loadConfig();
     }, [loadConfig]);
 
-     const handleSaveQuote = async (quoteNumber, solutionData, totalCost) => {
-        setLoading(true);
-        try {
-            const { data: existing, error: checkError } = await supabase
-                .from('quotes')
-                .select('id')
-                .eq('quote_number', quoteNumber)
-                .single();
-
-            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-                throw checkError;
-            }
-            if (existing) {
-                alert(`Error: El número de presupuesto '${quoteNumber}' ya existe.`);
-                return;
-            }
-
-            const payload = {
-                quote_number: quoteNumber,
-                ganging_result: optimizationResult, // Guardamos el resultado completo
-                chosen_solution_name: solutionData.summary ? solutionData.layouts[solutionData.productionPlan[0].id].layoutId : Object.keys(solutionData.layouts)[0],
-                total_cost: totalCost,
-            };
-            
-            const { error } = await supabase.from('quotes').insert(payload);
-            if (error) throw error;
-            
-            alert(`Cotización #${quoteNumber} guardada con éxito.`);
-        } catch (error) {
-            console.error("Error al guardar la cotización:", error);
-            alert(`Error: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleSave = async (tableName, data) => {
         try {
             if (data._delete) {
@@ -513,18 +460,13 @@ export default function App() {
     };
     
     const renderPage = () => {
-        const pythonApiUrl = 'https://preprensa-api.vercel.app/api'; // O la URL de tu API
         if (loading) { return <div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin text-cyan-400" size={48} /></div>; }
-        if (error) { return <div className="text-center p-4 text-red-400"><h1>Error de Conexión</h1><p>{error}</p></div>; }
+        if (error) { return <div className="flex flex-col items-center justify-center h-full w-full text-center text-red-400 p-4"><h1>Error de Conexión</h1><p>{error}</p><p className="mt-4 text-sm text-gray-400">Asegúrate de que las variables de entorno de Supabase estén bien configuradas en Vercel y que la base de datos esté accesible.</p></div>; }
         if (currentPage === 'cotizador') {
             return optimizationResult 
                 ? <GangingOptimizerUI apiResponse={optimizationResult} onBack={() => setOptimizationResult(null)} dollarRate={config.settings.dollarRate} />
                 : <JobsInputPage onOptimize={handleOptimize} materialsData={config.materials}/>;
-        }
-            // --- AÑADIMOS LA NUEVA PÁGINA ---
-        if (currentPage === 'imposicion') {
-            return <ImpositionPage supabase={supabase} pythonApiUrl={pythonApiUrl} />;
-        }
+            }
         switch (currentPage) {
             case 'maquinas': return <MachinesAdminPage initialData={config.machines} onSave={handleSave} />;
             case 'materiales': return <MaterialsAdminPage initialData={config.materials} onSave={handleSave} />;
@@ -535,13 +477,9 @@ export default function App() {
     };
     
     const NavItem = ({ page, label, icon: Icon }) => ( <button onClick={() => setCurrentPage(page)} className={`flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg transition-colors ${ currentPage === page ? 'bg-cyan-600/20 text-cyan-300' : 'text-gray-400 hover:bg-slate-700/50 hover:text-white'}`}> <Icon size={20} /> <span className="font-semibold">{label}</span> </button> );
-    return ( 
-        <div className="bg-slate-900 text-gray-50 min-h-screen font-sans flex"> 
-            <aside className="w-64 bg-slate-800/30 border-r border-gray-700 p-4 flex flex-col"> 
-                <div className="mb-8 flex items-center gap-3"> <img src="https://i.imgur.com/r42B5p2.png" alt="Logo Diagonal" className="h-10 opacity-80"/> <div>
-        <h1 className="font-bold text-xl text-white">Optimizador</h1><p className="text-xs text-gray-400">Imprenta Diagonal</p></div> </div> 
-            <nav className="flex flex-col gap-2"> 
-            <NavItem page="cotizador" label="Cotizador" icon={Calculator} /> <NavItem page="imposicion" label="Imposición" icon={Wand2} /><h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3 mt-4 mb-1">Configuración</h2> <NavItem page="maquinas" label="Máquinas" icon={Printer} /> 
+    return ( <div className="bg-slate-900 text-gray-50 min-h-screen font-sans flex"> <aside className="w-64 bg-slate-800/30 border-r border-gray-700 p-4 flex flex-col"> <div className="mb-8 flex items-center gap-3"> <img src="https://i.imgur.com/r42B5p2.png" alt="Logo Diagonal" className="h-10 opacity-80"/> <div>
+        <h1 className="font-bold text-xl text-white">Optimizador</h1><p className="text-xs text-gray-400">Imprenta Diagonal</p></div> </div> <nav className="flex flex-col gap-2"> 
+            <NavItem page="cotizador" label="Cotizador" icon={Calculator} /> <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3 mt-4 mb-1">Configuración</h2> <NavItem page="maquinas" label="Máquinas" icon={Printer} /> 
             <NavItem page="materiales" label="Materiales" icon={FileUp} /> <NavItem page="cortes" label="Cortes" icon={Scissors} /> <NavItem page="general" label="Ajustes Generales" icon={Settings} /> </nav> </aside> 
             <main className="flex-1 overflow-y-auto bg-slate-900"> {renderPage()} </main> 
             <style>{` .custom-select option 
