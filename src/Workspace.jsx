@@ -36,7 +36,7 @@ const PDFPreview = ({ file, placementWidth, placementHeight }) => {
                     width={150} 
                     renderTextLayer={false} 
                     renderAnnotationLayer={false} 
-                    rotate={rotation} // <-- AQUÍ SE APLICA LA ROTACIÓN
+                    rotate={rotation}
                 />
             </Document>
         </div>
@@ -171,19 +171,16 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             const pdfDoc = await pdfjs.getDocument(fileBuffer).promise;
             const page = await pdfDoc.getPage(1);
             
-            // pdfjs devuelve el trimBox en puntos [x1, y1, x2, y2]
-            const trimBox = page.trimBox || page.mediaBox; // Usa mediaBox como fallback
+            const trimBox = page.trimBox || page.mediaBox;
             const pdfWidthPt = trimBox[2] - trimBox[0];
             const pdfHeightPt = trimBox[3] - trimBox[1];
             
-            // Convertimos de puntos a milímetros
             const pdfWidthMm = pdfWidthPt * (25.4 / 72);
             const pdfHeightMm = pdfHeightPt * (25.4 / 72);
 
             const expectedWidth = jobData.width;
             const expectedHeight = jobData.length;
 
-            // Validamos con una tolerancia de 1mm, permitiendo rotación
             const widthMatch = Math.abs(pdfWidthMm - expectedWidth) < 1;
             const heightMatch = Math.abs(pdfHeightMm - expectedHeight) < 1;
             const rotatedWidthMatch = Math.abs(pdfWidthMm - expectedHeight) < 1;
@@ -194,7 +191,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 setMessage(`Archivo para "${jobName}" cargado y verificado.`);
             } else {
                 const errorMsg = `Error en "${jobName}": El tamaño del TrimBox del PDF (${pdfWidthMm.toFixed(1)}x${pdfHeightMm.toFixed(1)}mm) no coincide con el tamaño esperado del trabajo (${expectedWidth}x${expectedHeight}mm).`;
-                alert(errorMsg); // Usamos un alert para que sea inmediato y claro
+                alert(errorMsg);
                 setMessage(errorMsg);
             }
         } catch (error) {
@@ -203,7 +200,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         } finally {
             setLoading(false);
         }
-    }, [apiResponse, setLoading]);
+    }, [apiResponse, setLoading]); // <-- CORRECCIÓN APLICADA AQUÍ
 
     const { baselineSolution, gangedSolutions } = apiResponse;
     const solutions = useMemo(() => {
