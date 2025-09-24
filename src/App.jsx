@@ -3,13 +3,15 @@ import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Set
 import { createClient } from '@supabase/supabase-js';
 import { ImpositionPage } from './ImpositionPage';
 import { Workspace } from './Workspace';
+
+// --- Importación de react-pdf y su configuración ---
 import { pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// --- CONFIGURACIÓN DEL WORKER COMPATIBLE CON WEBPACK ---
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Configuración del worker para que apunte al archivo copiado en la carpeta 'public'
+pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+
 
 // --- SUPABASE CLIENT SETUP ---
 // NOTE: These variables should be set in your hosting environment (e.g., Vercel).
