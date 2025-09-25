@@ -4,26 +4,38 @@ import { useDropzone } from 'react-dropzone';
 
 // --- COMPONENTES INTERNOS AUXILIARES ---
 
-const PDFPreview = ({ previewUrl }) => (
+const PDFPreview = ({ previewUrl, needsRotation }) => (
     <div className="w-full h-full flex items-center justify-center overflow-hidden">
-        <img src={previewUrl} alt="Previsualización" className="max-w-full max-h-full object-contain" />
+        <img
+            src={previewUrl}
+            alt="Previsualización"
+            // Si needsRotation es true, aplicamos la clase de Tailwind para rotar 90 grados
+            className={`max-w-full max-h-full object-contain transition-transform duration-300 ${needsRotation ? 'rotate-90' : ''}`}
+        />
     </div>
 );
 
-const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => {
+const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobDims }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
         noClick: true, noKeyboard: true
     });
     const itemStyle = { left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
-    
+
+    // LÓGICA DE ROTACIÓN:
+    // Comparamos el ancho de esta casilla (item.w) con el ancho original del trabajo.
+    // Si no coinciden, significa que el optimizador lo rotó.
+    // Damos un margen de 0.1 por posibles errores de redondeo.
+    const needsRotation = originalJobDims && Math.abs(item.w - originalJobDims.width) > 0.1;
+
     return (
         <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
             <input {...getInputProps()} />
             <div className="w-full h-full flex items-center justify-center overflow-hidden">
                 {fileForJob?.previewUrl ? (
-                    <PDFPreview previewUrl={fileForJob.previewUrl} />
+                    // Pasamos la decisión de rotar al componente PDFPreview
+                    <PDFPreview previewUrl={fileForJob.previewUrl} needsRotation={needsRotation} />
                 ) : (
                     <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
                 )}
@@ -57,7 +69,18 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                     {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
-                            return <ImpositionItem key={`${item.id}-${i}`} item={item} scale={scale} padding={padding} onDrop={onDrop} fileForJob={jobFiles[item.id]} />;
+                            // Buscamos el trabajo original para obtener sus dimensiones
+                            const originalJob = originalJobs.find(j => j.id === item.id);
+                            return <ImpositionItem
+                                key={`${item.id}-${i}`}
+                                item={item}
+                                scale={scale}
+                                padding={padding}
+                                onDrop={onDrop}
+                                fileForJob={jobFiles[item.id]}
+                                // Pasamos las dimensiones originales al item
+                                originalJobDims={originalJob ? { width: originalJob.width, length: originalJob.length } : null}
+                            />;
                         }
                         const itemW = (item.width || item.w) * scale; const itemH = (item.length || item.h) * scale;
                         const fontSize = Math.min(itemH / 3, itemW / ((item.id || itemLabelPrefix).length * 0.6), 14);
@@ -130,7 +153,7 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop }) => {
                 </div>
                 <div className="md:col-span-2 grid grid-cols-1 gap-6">
                    <DynamicLayoutVisualizer layoutData={panelA_Data} isInteractive={false} />
-                   <DynamicLayoutVisualizer layoutData={panelB_Data} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} />
+                   <DynamicLayoutVisualizer layoutData={panelB_Data} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} originalJobs={apiResponse.jobs} />
                 </div>
             </div>
         </div>
