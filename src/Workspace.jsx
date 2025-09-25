@@ -7,36 +7,55 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
         noClick: true, noKeyboard: true
     });
-    const itemStyle = { left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale };
+    
+    // El contenedor principal mantiene su tamaño y posición
+    const itemStyle = {
+        left: item.x * scale + padding/2,
+        top: item.y * scale + padding/2,
+        width: item.w * scale,
+        height: item.h * scale
+    };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
+    // --- Implementación de tu lógica ---
+    // 1. Decidir si rotar ("si largo != largo")
     const isOriginalPortrait = originalJobDims && originalJobDims.length > originalJobDims.width;
     const isPlacementPortrait = item.h > item.w;
     const needsRotation = originalJobDims && (isOriginalPortrait !== isPlacementPortrait);
 
-    // Determinamos la clase CSS de rotación directamente
-    const rotationClass = needsRotation ? 'rotate-90' : '';
+    // 2. Construir la transformación final
+    let transformString = 'translate(-50%, -50%) rotate(0deg) scale(1)'; // Centrar y estado normal
+    if (needsRotation) {
+        // Si rotamos, también escalamos para que "lado largo = lado largo"
+        const longSide = Math.max(item.w, item.h);
+        const shortSide = Math.min(item.w, item.h);
+        const scaleFactor = shortSide > 0 ? longSide / shortSide : 1;
+        transformString = `translate(-50%, -50%) rotate(90deg) scale(${scaleFactor})`;
+    }
 
     return (
+        // El contenedor solo define el área y el borde
         <div {...getRootProps()}
-             className={`absolute border-2 border-dashed transition-colors overflow-hidden flex justify-center items-center ${activeClass}`}
+             className={`absolute border-2 border-dashed transition-colors overflow-hidden ${activeClass}`}
              style={itemStyle}>
             
             <input {...getInputProps()} />
             
             {fileForJob?.previewUrl ? (
-                // CAMBIO CLAVE: Un div intermedio que aplica la rotación
-                // La imagen dentro de este div se ajusta a las dimensiones del div rotado.
-                <div className={`w-full h-full flex justify-center items-center ${rotationClass}`}>
-                    <img
-                        src={fileForJob.previewUrl}
-                        alt="Previsualización"
-                        // La imagen ahora SÓLO se preocupa de ajustarse al 100% de su CONTENEDOR (el div rotador)
-                        className="w-full h-full object-contain transition-transform duration-300"
-                    />
-                </div>
+                // 3. Aplicar la lógica a la imagen
+                <img
+                    src={fileForJob.previewUrl}
+                    alt="Previsualización"
+                    // Posicionamiento absoluto para control total, y las clases para el escalado inicial
+                    className="absolute top-1/2 left-1/2 max-w-full max-h-full object-contain transition-transform duration-300"
+                    // El `transform` hace TODO el trabajo: centra, rota y escala en un solo paso.
+                    style={{ transform: transformString, transformOrigin: 'center' }}
+                />
             ) : (
-                <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
+                // El texto sin imagen también se centra con la misma técnica
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs text-white/40 p-1 text-center">
+                    {item.id}
+                </span>
             )}
         </div>
     );
