@@ -17,45 +17,32 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
     let imageStyle = {};
+    let imageClasses = "transition-transform duration-300"; // Clases base
+
     if (originalJobDims && fileForJob) {
         // --- INICIO DE TU LÓGICA IMPLEMENTADA EN JAVASCRIPT ---
-
-        // 1. CALCULAR ESCALA ("Lado largo con lado largo")
-        const originalAspectRatio = originalJobDims.width / originalJobDims.length;
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
 
-        let displayWidth, displayHeight;
-        // Simulamos 'object-contain' para obtener las dimensiones exactas en píxeles
-        if (containerWidth / containerHeight > originalAspectRatio) {
-            displayHeight = containerHeight;
-            displayWidth = displayHeight * originalAspectRatio;
-        } else {
-            displayWidth = containerWidth;
-            displayHeight = displayWidth / originalAspectRatio;
-        }
-
-        // 2. DECIDIR ROTACIÓN ("si lado largo != lado largo")
         const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
         const isPlacementLandscape = item.w > item.h;
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
-        // 3. APLICAR ESTILOS
         if (needsRotation) {
-            // Si se rota, las dimensiones calculadas se INVIERTEN para la imagen
+            // TU LÓGICA: Si se rota, la altura de la foto es el ancho del div, y viceversa.
             imageStyle = {
-                width: `${displayHeight}px`,
-                height: `${displayWidth}px`,
+                height: `${containerWidth}px`,
+                width: `${containerHeight}px`,
                 transform: 'rotate(90deg)',
             };
         } else {
-            // Si no se rota, se usan las dimensiones tal cual
+            // SI NO SE ROTA: La imagen simplemente se ajusta a su contenedor.
             imageStyle = {
-                width: `${displayWidth}px`,
-                height: `${displayHeight}px`,
+                maxWidth: '100%',
+                maxHeight: '100%',
             };
+            imageClasses += " object-contain"; // object-contain solo para el caso no rotado
         }
-        // --- FIN DE LA LÓGICA ---
     }
 
     return (
@@ -67,8 +54,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
-                    // Eliminamos TODAS las clases de tamaño. El control es 100% de JS.
-                    className="transition-transform duration-300" 
+                    className={imageClasses}
                     style={imageStyle}
                 />
             ) : (
