@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone';
 // ======================= CAMBIO #1 (Simplificado) =======================
 // Este componente ahora es más simple. Ya no contiene lógica de clases complejas.
 // Solo aplica el estilo de transformación que su componente padre le pasa.
-const PDFPreview = ({ previewUrl, transformStyle }) => {
+/*const PDFPreview = ({ previewUrl, transformStyle }) => {
     return (
         <div className="w-full h-full flex items-center justify-center overflow-hidden">
             <img
@@ -16,7 +16,7 @@ const PDFPreview = ({ previewUrl, transformStyle }) => {
             />
         </div>
     );
-};
+};*/
 // =======================================================================
 
 // ======================= CAMBIO #2 (Lógica Principal) =======================
@@ -29,28 +29,42 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     const itemStyle = { left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    // --- INICIO DE LA NUEVA LÓGICA MEJORADA ---
-
-    // 1. Determinamos las orientaciones, como sugeriste.
     const isOriginalPortrait = originalJobDims && originalJobDims.length > originalJobDims.width;
     const isPlacementPortrait = item.h > item.w;
-
-    // 2. La rotación es necesaria si las orientaciones no coinciden.
     const needsRotation = originalJobDims && (isOriginalPortrait !== isPlacementPortrait);
 
-    // 3. Calculamos la transformación (rotación y escala).
     let transformStyle = { transform: 'rotate(0deg) scale(1)' };
     if (needsRotation) {
-        // Si hay que rotar, también hay que escalar para llenar el nuevo espacio.
-        // El factor de escala es siempre la proporción entre el lado largo y el lado corto del CONTENEDOR.
         const longSide = Math.max(item.w, item.h);
         const shortSide = Math.min(item.w, item.h);
         const scaleFactor = shortSide > 0 ? longSide / shortSide : 1;
-        
         transformStyle = {
             transform: `rotate(90deg) scale(${scaleFactor})`,
         };
     }
+
+    return (
+        // CAMBIO CLAVE: El contenedor ahora es el flexbox y tiene overflow-hidden
+        <div {...getRootProps()} 
+             className={`absolute border-2 border-dashed transition-colors overflow-hidden flex justify-center items-center ${activeClass}`} 
+             style={itemStyle}>
+            
+            <input {...getInputProps()} />
+            
+            {fileForJob?.previewUrl ? (
+                // La imagen ahora es un hijo directo del contenedor flex
+                <img
+                    src={fileForJob.previewUrl}
+                    alt="Previsualización"
+                    className="max-w-full max-h-full object-contain transition-transform duration-300"
+                    style={transformStyle}
+                />
+            ) : (
+                <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
+            )}
+        </div>
+    );
+};
 
     return (
         <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
