@@ -14,30 +14,27 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     const isPlacementPortrait = item.h > item.w;
     const needsRotation = originalJobDims && (isOriginalPortrait !== isPlacementPortrait);
 
-    let transformStyle = { transform: 'rotate(0deg) scale(1)' };
-    if (needsRotation) {
-        const longSide = Math.max(item.w, item.h);
-        const shortSide = Math.min(item.w, item.h);
-        const scaleFactor = shortSide > 0 ? longSide / shortSide : 1;
-        transformStyle = {
-            transform: `rotate(90deg) scale(${scaleFactor})`,
-        };
-    }
+    // Determinamos la clase CSS de rotación directamente
+    const rotationClass = needsRotation ? 'rotate-90' : '';
 
     return (
-        <div {...getRootProps()} 
-             className={`absolute border-2 border-dashed transition-colors overflow-hidden flex justify-center items-center ${activeClass}`} 
+        <div {...getRootProps()}
+             className={`absolute border-2 border-dashed transition-colors overflow-hidden flex justify-center items-center ${activeClass}`}
              style={itemStyle}>
             
             <input {...getInputProps()} />
             
             {fileForJob?.previewUrl ? (
-                <img
-                    src={fileForJob.previewUrl}
-                    alt="Previsualización"
-                    className="max-w-full max-h-full object-contain transition-transform duration-300"
-                    style={transformStyle}
-                />
+                // CAMBIO CLAVE: Un div intermedio que aplica la rotación
+                // La imagen dentro de este div se ajusta a las dimensiones del div rotado.
+                <div className={`w-full h-full flex justify-center items-center ${rotationClass}`}>
+                    <img
+                        src={fileForJob.previewUrl}
+                        alt="Previsualización"
+                        // La imagen ahora SÓLO se preocupa de ajustarse al 100% de su CONTENEDOR (el div rotador)
+                        className="w-full h-full object-contain transition-transform duration-300"
+                    />
+                </div>
             ) : (
                 <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
             )}
