@@ -41,10 +41,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     // ======================== FIN DEL CAMBIO =========================
 
     // La lógica para aplicar los estilos a la imagen se mantiene igual.
-    let imageStyle = {
-            maxWidth: 'unset', 
-            padding: '3%'
-         };
+    let imageStyle = {};
     let imageClasses = "transition-transform duration-300";
 
     if (originalJobDims && fileForJob) {
@@ -55,7 +52,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
         if (needsRotation) {
-            imageStyle = { imageStyle...,height: `${containerWidth}px`, width: `${containerHeight}px`, transform: 'rotate(90deg)' };
+            imageStyle = { maxWidth: 'unset', padding: '3%', height: `${containerWidth}px`, width: `${containerHeight}px`, transform: 'rotate(90deg)' };
         } else {
             const originalAspectRatio = originalJobDims.width / originalJobDims.length;
             let displayWidth, displayHeight;
@@ -66,7 +63,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
                 displayWidth = containerWidth;
                 displayHeight = displayWidth / originalAspectRatio;
             }
-            imageStyle = {imageStyle..., width: `${displayWidth}px`, height: `${displayHeight}px` };
+            imageStyle = { maxWidth: 'unset', padding: '3%',  width: `${displayWidth}px`, height: `${displayHeight}px` };
         }
     }
 
