@@ -9,7 +9,6 @@ const PDFPreview = ({ previewUrl, needsRotation }) => (
         <img
             src={previewUrl}
             alt="Previsualización"
-            // Si needsRotation es true, aplicamos la clase de Tailwind para rotar 90 grados
             className={`max-w-full max-h-full object-contain transition-transform duration-300 ${needsRotation ? 'rotate-90' : ''}`}
         />
     </div>
@@ -23,10 +22,6 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     const itemStyle = { left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    // LÓGICA DE ROTACIÓN:
-    // Comparamos el ancho de esta casilla (item.w) con el ancho original del trabajo.
-    // Si no coinciden, significa que el optimizador lo rotó.
-    // Damos un margen de 0.1 por posibles errores de redondeo.
     const needsRotation = originalJobDims && Math.abs(item.w - originalJobDims.width) > 0.1;
 
     return (
@@ -34,7 +29,6 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
             <input {...getInputProps()} />
             <div className="w-full h-full flex items-center justify-center overflow-hidden">
                 {fileForJob?.previewUrl ? (
-                    // Pasamos la decisión de rotar al componente PDFPreview
                     <PDFPreview previewUrl={fileForJob.previewUrl} needsRotation={needsRotation} />
                 ) : (
                     <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
@@ -47,7 +41,10 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
 const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
 
-const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false }) => {
+// ======================= CAMBIO #1 =======================
+// Añadimos originalJobs a la lista de props que recibe este componente.
+const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false, originalJobs = [] }) => {
+// =========================================================
     const { parentSize, items, parentLabel, footerText, title } = layoutData;
     const itemLabelPrefix = parentLabel.includes('Pliego') ? "" : "Pliego";
     const containerSize = 250, padding = 10;
@@ -69,7 +66,6 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                     {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
-                            // Buscamos el trabajo original para obtener sus dimensiones
                             const originalJob = originalJobs.find(j => j.id === item.id);
                             return <ImpositionItem
                                 key={`${item.id}-${i}`}
@@ -78,7 +74,6 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                                 padding={padding}
                                 onDrop={onDrop}
                                 fileForJob={jobFiles[item.id]}
-                                // Pasamos las dimensiones originales al item
                                 originalJobDims={originalJob ? { width: originalJob.width, length: originalJob.length } : null}
                             />;
                         }
@@ -94,32 +89,35 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
     );
 };
 
-const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => { 
-    const [isOpen, setIsOpen] = useState(defaultOpen); 
-    return ( 
-        <div className="border-t border-gray-700 last:border-b-0"> 
-            <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}> 
-                <div className="flex justify-between items-center"> 
-                    <div> 
-                        <p className="font-semibold text-gray-200 text-sm">{title}</p> 
-                        {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>} 
-                    </div> 
-                    <div className="flex items-center gap-4"> 
-                        <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span> 
-                        {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />} 
-                    </div> 
-                </div> 
-            </button> 
-            {isOpen && details && ( 
-                <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20"> 
-                    {details.map((item, index) => <CostAccordion key={index} {...item} />)} 
-                </div> 
-            )} 
-        </div> 
-    ); 
+const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+        <div className="border-t border-gray-700 last:border-b-0">
+            <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <p className="font-semibold text-gray-200 text-sm">{title}</p>
+                        {formula && <p className="text-xs text-gray-400 mt-0.5">{formula}</p>}
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span>
+                        {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
+                    </div>
+                </div>
+            </button>
+            {isOpen && details && (
+                <div className="pl-4 border-l-2 border-cyan-700 ml-2 bg-black/20">
+                    {details.map((item, index) => <CostAccordion key={index} {...item} />)}
+                </div>
+            )}
+        </div>
+    );
 };
 
-const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop }) => {
+// ======================= CAMBIO #2 =======================
+// Añadimos apiResponse a la lista de props que recibe este componente.
+const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) => {
+// =========================================================
     const costDetails = useMemo(() => {
         const pCost = layout.costBreakdown.printingCost;
         const mNeeds = layout.materialNeeds;
@@ -179,14 +177,11 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         formData.append('expected_height', expectedHeight);
 
         try {
-            // IMPORTANTE: Reemplaza esta URL por la URL de tu API desplegada en Vercel
-           const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
+            const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
                 method: 'POST',
-                // --- ENCABEZADO AÑADIDO ---
                 headers: {
                     'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op'
                 },
-                // --- FIN DE LA CORRECCIÓN ---
                 body: formData,
             });
 
@@ -272,7 +267,10 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             </div>
             
             {(selectedSolution.summary ? gangedPlan : baseLayouts).map((layout, index) => (
-                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} />
+                // ======================= CAMBIO #3 =======================
+                // Pasamos la prop apiResponse a cada ProductionSheet
+                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} apiResponse={apiResponse} />
+                // =========================================================
             ))}
 
             <div className="bg-slate-800/50 border border-gray-700 rounded-lg mt-6 shadow-lg p-4">
