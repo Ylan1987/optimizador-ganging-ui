@@ -8,54 +8,68 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         noClick: true, noKeyboard: true
     });
     
-    // El contenedor principal mantiene su tamaño y posición
-    const itemStyle = {
-        left: item.x * scale + padding/2,
-        top: item.y * scale + padding/2,
-        width: item.w * scale,
+    const containerStyle = {
+        left: item.x * scale + padding/2, 
+        top: item.y * scale + padding/2, 
+        width: item.w * scale, 
         height: item.h * scale
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    // --- Implementación de tu lógica ---
-    // 1. Decidir si rotar ("si largo != largo")
-    const isOriginalPortrait = originalJobDims && originalJobDims.length > originalJobDims.width;
-    const isPlacementPortrait = item.h > item.w;
-    const needsRotation = originalJobDims && (isOriginalPortrait !== isPlacementPortrait);
+    // --- LÓGICA DEFINITIVA BASADA EN TUS INSTRUCCIONES ---
+    let imageStyle = {};
+    if (originalJobDims && fileForJob) {
+        // 1. CALCULAR ESCALA ("Lado largo con lado largo")
+        const originalAspectRatio = originalJobDims.width / originalJobDims.length;
+        const containerWidth = item.w * scale;
+        const containerHeight = item.h * scale;
 
-    // 2. Construir la transformación final
-    let transformString = 'translate(-50%, -50%) rotate(0deg) scale(1)'; // Centrar y estado normal
-    if (needsRotation) {
-        // Si rotamos, también escalamos para que "lado largo = lado largo"
-        const longSide = Math.max(item.w, item.h);
-        const shortSide = Math.min(item.w, item.h);
-        const scaleFactor = shortSide > 0 ? longSide / shortSide : 1;
-        transformString = `translate(-50%, -50%) rotate(90deg) scale(${scaleFactor})`;
+        let displayWidth, displayHeight;
+        if (containerWidth / containerHeight > originalAspectRatio) {
+            displayHeight = containerHeight;
+            displayWidth = displayHeight * originalAspectRatio;
+        } else {
+            displayWidth = containerWidth;
+            displayHeight = displayWidth / originalAspectRatio;
+        }
+
+        // 2. DECIDIR ROTACIÓN ("si lado largo != lado largo")
+        const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
+        const isPlacementLandscape = item.w > item.h;
+        const needsRotation = isOriginalLandscape !== isPlacementLandscape;
+        
+        // 3. APLICAR ESTILOS
+        if (needsRotation) {
+            // Si se rota, las dimensiones calculadas se invierten para la imagen
+            imageStyle = {
+                width: `${displayHeight}px`,
+                height: `${displayWidth}px`,
+                transform: 'rotate(90deg)',
+            };
+        } else {
+            // Si no se rota, se usan las dimensiones tal cual
+            imageStyle = {
+                width: `${displayWidth}px`,
+                height: `${displayHeight}px`,
+            };
+        }
     }
 
     return (
-        // El contenedor solo define el área y el borde
         <div {...getRootProps()}
-             className={`absolute border-2 border-dashed transition-colors overflow-hidden ${activeClass}`}
-             style={itemStyle}>
-            
+             className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
+             style={containerStyle}>
             <input {...getInputProps()} />
-            
             {fileForJob?.previewUrl ? (
-                // 3. Aplicar la lógica a la imagen
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
-                    // Posicionamiento absoluto para control total, y las clases para el escalado inicial
-                    className="absolute top-1/2 left-1/2 max-w-full max-h-full object-contain transition-transform duration-300"
-                    // El `transform` hace TODO el trabajo: centra, rota y escala en un solo paso.
-                    style={{ transform: transformString, transformOrigin: 'center' }}
+                    // Eliminamos TODAS las clases de tamaño. El control es 100% de JS.
+                    className="transition-transform duration-300" 
+                    style={imageStyle}
                 />
             ) : (
-                // El texto sin imagen también se centra con la misma técnica
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs text-white/40 p-1 text-center">
-                    {item.id}
-                </span>
+                <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
             )}
         </div>
     );
@@ -83,7 +97,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
             <h4 className="font-semibold text-sm text-center text-white mb-2">{title}</h4>
             <div className={`p-2 border-2 border-dashed ${isInteractive ? 'border-transparent' : 'border-gray-600'} text-center`}>
                 <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
-                    {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
+                    {!isInteractive && <div className="absolute -top-5 left-1-2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
                             const originalJob = originalJobs.find(j => j.id === item.id);
@@ -149,7 +163,7 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) 
         return [ { title: "Pliegos a Imprimir", value: `${formatNumber(sheetsToPrint)} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${formatNumber(materialNeeds.factorySheets.quantityNeeded)} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ];
     }, [layout]);
 
-    const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${layout.materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`};
+    const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`};
     const panelB_Data = { title: "Panel B: Imposición en Pliego (Interactivo)", parentSize: layout.pressSheetSize, items: layout.placements, parentLabel: `Pliego ${layout.pressSheetSize.width}x${layout.pressSheetSize.length}`, footerText: `Imprimir <strong class="text-cyan-300">${formatNumber(layout.sheetsToPrint)} + ${layout.machine.overage.amount} demasía</strong> en pliegos.`};
 
     return (
