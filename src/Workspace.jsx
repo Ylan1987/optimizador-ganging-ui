@@ -2,32 +2,25 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-// --- COMPONENTES INTERNOS AUXILIARES ---
-
-const PDFPreview = ({ previewUrl, needsRotation }) => {
-    // Clases base para la imagen
-    const baseClasses = 'object-contain transition-transform duration-300';
-
-    // Clases condicionales para el tamaño y la rotación
-    const sizingClasses = needsRotation
-        // Para la imagen ROTADA:
-        // 'max-h-full' limita el nuevo ancho visual.
-        // 'max-w-[100vh]' elimina la restricción de ancho original, permitiendo que la imagen crezca.
-        ? 'rotate-90 max-h-full max-w-[100vh]'
-        // Para la imagen NORMAL:
-        : 'max-w-full max-h-full';
-
+// ======================= CAMBIO #1 (Simplificado) =======================
+// Este componente ahora es más simple. Ya no contiene lógica de clases complejas.
+// Solo aplica el estilo de transformación que su componente padre le pasa.
+const PDFPreview = ({ previewUrl, transformStyle }) => {
     return (
         <div className="w-full h-full flex items-center justify-center overflow-hidden">
             <img
                 src={previewUrl}
                 alt="Previsualización"
-                className={`${baseClasses} ${sizingClasses}`}
+                className="max-w-full max-h-full object-contain transition-transform duration-300"
+                style={transformStyle} // Aplicamos el estilo calculado aquí
             />
         </div>
     );
 };
+// =======================================================================
 
+// ======================= CAMBIO #2 (Lógica Principal) =======================
+// Ahora este componente calcula la transformación exacta necesaria.
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobDims }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
@@ -38,12 +31,27 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
 
     const needsRotation = originalJobDims && Math.abs(item.w - originalJobDims.width) > 0.1;
 
+    // AQUÍ ESTÁ LA NUEVA LÓGICA
+    let transformStyle = { transform: 'rotate(0deg) scale(1)' };
+    if (needsRotation) {
+        // Un elemento rotado debe ser escalado por el ratio de sus lados para llenar el contenedor.
+        const longSide = Math.max(item.w, item.h);
+        const shortSide = Math.min(item.w, item.h);
+        // Nos aseguramos de no dividir por cero
+        const scaleFactor = shortSide > 0 ? longSide / shortSide : 1;
+        
+        transformStyle = {
+            transform: `rotate(90deg) scale(${scaleFactor})`,
+        };
+    }
+
     return (
         <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
             <input {...getInputProps()} />
             <div className="w-full h-full flex items-center justify-center overflow-hidden">
                 {fileForJob?.previewUrl ? (
-                    <PDFPreview previewUrl={fileForJob.previewUrl} needsRotation={needsRotation} />
+                    // Pasamos el objeto de estilo calculado al componente PDFPreview
+                    <PDFPreview previewUrl={fileForJob.previewUrl} transformStyle={transformStyle} />
                 ) : (
                     <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
                 )}
@@ -51,14 +59,12 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         </div>
     );
 };
+// =========================================================================
 
 const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
 
-// ======================= CAMBIO #1 =======================
-// Añadimos originalJobs a la lista de props que recibe este componente.
 const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false, originalJobs = [] }) => {
-// =========================================================
     const { parentSize, items, parentLabel, footerText, title } = layoutData;
     const itemLabelPrefix = parentLabel.includes('Pliego') ? "" : "Pliego";
     const containerSize = 250, padding = 10;
@@ -128,10 +134,7 @@ const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) 
     );
 };
 
-// ======================= CAMBIO #2 =======================
-// Añadimos apiResponse a la lista de props que recibe este componente.
 const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) => {
-// =========================================================
     const costDetails = useMemo(() => {
         const pCost = layout.costBreakdown.printingCost;
         const mNeeds = layout.materialNeeds;
@@ -281,10 +284,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             </div>
             
             {(selectedSolution.summary ? gangedPlan : baseLayouts).map((layout, index) => (
-                // ======================= CAMBIO #3 =======================
-                // Pasamos la prop apiResponse a cada ProductionSheet
                 <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} apiResponse={apiResponse} />
-                // =========================================================
             ))}
 
             <div className="bg-slate-800/50 border border-gray-700 rounded-lg mt-6 shadow-lg p-4">
