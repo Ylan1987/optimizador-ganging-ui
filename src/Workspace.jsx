@@ -29,6 +29,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
          console.log({
+            item: item,
             trabajo: item.id,
             ancho_original: originalJobDims.width,
             largo_original: originalJobDims.length,
@@ -36,7 +37,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
             largo_contenedor: item.h,
             necesita_rotacion: needsRotation
         });
-         
+
         if (needsRotation) {
             // TU LÓGICA: Si se rota, la altura de la foto es el ancho del div, y viceversa.
             imageStyle = {
