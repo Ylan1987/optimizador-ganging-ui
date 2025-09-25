@@ -2,25 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-// ======================= CAMBIO #1 (Simplificado) =======================
-// Este componente ahora es más simple. Ya no contiene lógica de clases complejas.
-// Solo aplica el estilo de transformación que su componente padre le pasa.
-/*const PDFPreview = ({ previewUrl, transformStyle }) => {
-    return (
-        <div className="w-full h-full flex items-center justify-center overflow-hidden">
-            <img
-                src={previewUrl}
-                alt="Previsualización"
-                className="max-w-full max-h-full object-contain transition-transform duration-300"
-                style={transformStyle} // Aplicamos el estilo calculado aquí
-            />
-        </div>
-    );
-};*/
-// =======================================================================
-
-// ======================= CAMBIO #2 (Lógica Principal) =======================
-// Ahora este componente calcula la transformación exacta necesaria.
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobDims }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
@@ -44,7 +25,6 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     }
 
     return (
-        // CAMBIO CLAVE: El contenedor ahora es el flexbox y tiene overflow-hidden
         <div {...getRootProps()} 
              className={`absolute border-2 border-dashed transition-colors overflow-hidden flex justify-center items-center ${activeClass}`} 
              style={itemStyle}>
@@ -52,7 +32,6 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
             <input {...getInputProps()} />
             
             {fileForJob?.previewUrl ? (
-                // La imagen ahora es un hijo directo del contenedor flex
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
@@ -65,22 +44,6 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         </div>
     );
 };
-
-    return (
-        <div {...getRootProps()} className={`absolute border-2 border-dashed transition-colors ${activeClass}`} style={itemStyle}>
-            <input {...getInputProps()} />
-            <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                {fileForJob?.previewUrl ? (
-                    // Pasamos el objeto de estilo calculado al componente PDFPreview
-                    <PDFPreview previewUrl={fileForJob.previewUrl} transformStyle={transformStyle} />
-                ) : (
-                    <span className="text-xs text-white/40 p-1 text-center">{item.id}</span>
-                )}
-            </div>
-        </div>
-    );
-};
-// =========================================================================
 
 const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
