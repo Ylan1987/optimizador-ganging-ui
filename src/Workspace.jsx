@@ -157,8 +157,13 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
         try {
             // IMPORTANTE: Reemplaza esta URL por la URL de tu API desplegada en Vercel
-            const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
+           const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
                 method: 'POST',
+                // --- ENCABEZADO AÑADIDO ---
+                headers: {
+                    'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op'
+                },
+                // --- FIN DE LA CORRECCIÓN ---
                 body: formData,
             });
 
