@@ -16,59 +16,75 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    let imageStyle = {};
-    if (originalJobDims && fileForJob) {
-        // --- INICIO DE TU LÓGICA IMPLEMENTADA EN JAVASCRIPT ---
+    // ======================= INICIO DEL CAMBIO =======================
+    // 1. Creamos una función que se ejecutará solo al pasar el mouse por encima.
+    const handleMouseEnter = () => {
+        // Ponemos toda la lógica de cálculo y el console.log aquí adentro.
+        if (originalJobDims) {
+            const containerWidth = item.w * scale;
+            const containerHeight = item.h * scale;
 
-        // 1. CALCULAR ESCALA ("Lado largo con lado largo")
-        const originalAspectRatio = originalJobDims.width / originalJobDims.length;
+            const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
+            const isPlacementLandscape = item.w > item.h;
+            const needsRotation = isOriginalLandscape !== isPlacementLandscape;
+
+            console.log("--- DATOS DEL DIV SELECCIONADO ---", {
+                trabajo: item.id,
+                ancho_original_trabajo_mm: originalJobDims.width,
+                largo_original_trabajo_mm: originalJobDims.length,
+                ancho_final_div_px: containerWidth.toFixed(2),
+                largo_final_div_px: containerHeight.toFixed(2),
+                necesita_rotacion: needsRotation
+            });
+        }
+    };
+    // ======================== FIN DEL CAMBIO =========================
+
+    // La lógica para aplicar los estilos a la imagen se mantiene igual.
+    let imageStyle = {
+            maxWidth: 'unset', 
+            padding: '3%'
+         };
+    let imageClasses = "transition-transform duration-300";
+
+    if (originalJobDims && fileForJob) {
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
-
-        let displayWidth, displayHeight;
-        // Simulamos 'object-contain' para obtener las dimensiones exactas en píxeles
-        if (containerWidth / containerHeight > originalAspectRatio) {
-            displayHeight = containerHeight;
-            displayWidth = displayHeight * originalAspectRatio;
-        } else {
-            displayWidth = containerWidth;
-            displayHeight = displayWidth / originalAspectRatio;
-        }
-
-        // 2. DECIDIR ROTACIÓN ("si lado largo != lado largo")
         const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
         const isPlacementLandscape = item.w > item.h;
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
-        // 3. APLICAR ESTILOS
         if (needsRotation) {
-            // Si se rota, las dimensiones calculadas se INVIERTEN para la imagen
-            imageStyle = {
-                width: `${displayHeight}px`,
-                height: `${displayWidth}px`,
-                transform: 'rotate(90deg)',
-            };
+            imageStyle = { imageStyle...,height: `${containerWidth}px`, width: `${containerHeight}px`, transform: 'rotate(90deg)' };
         } else {
-            // Si no se rota, se usan las dimensiones tal cual
-            imageStyle = {
-                width: `${displayWidth}px`,
-                height: `${displayHeight}px`,
-            };
+            const originalAspectRatio = originalJobDims.width / originalJobDims.length;
+            let displayWidth, displayHeight;
+            if (containerWidth / containerHeight > originalAspectRatio) {
+                displayHeight = containerHeight;
+                displayWidth = displayHeight * originalAspectRatio;
+            } else {
+                displayWidth = containerWidth;
+                displayHeight = displayWidth / originalAspectRatio;
+            }
+            imageStyle = {imageStyle..., width: `${displayWidth}px`, height: `${displayHeight}px` };
         }
-        // --- FIN DE LA LÓGICA ---
     }
 
     return (
-        <div {...getRootProps()}
-             className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
-             style={containerStyle}>
+        <div 
+            {...getRootProps()}
+            // 2. Añadimos el evento onMouseEnter al div principal.
+            onMouseEnter={handleMouseEnter}
+            className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
+            style={containerStyle}>
+            
             <input {...getInputProps()} />
+            
             {fileForJob?.previewUrl ? (
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
-                    // Eliminamos TODAS las clases de tamaño. El control es 100% de JS.
-                    className="transition-transform duration-300" 
+                    className={imageClasses}
                     style={imageStyle}
                 />
             ) : (
