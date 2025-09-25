@@ -17,45 +17,45 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
     let imageStyle = {};
-    // La clase 'object-contain' es crucial para el caso no rotado.
-    let imageClasses = "transition-transform duration-300 object-contain";
-
     if (originalJobDims && fileForJob) {
+        // --- INICIO DE TU LÓGICA IMPLEMENTADA EN JAVASCRIPT ---
+
+        // 1. CALCULAR ESCALA ("Lado largo con lado largo")
+        const originalAspectRatio = originalJobDims.width / originalJobDims.length;
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
 
+        let displayWidth, displayHeight;
+        // Simulamos 'object-contain' para obtener las dimensiones exactas en píxeles
+        if (containerWidth / containerHeight > originalAspectRatio) {
+            displayHeight = containerHeight;
+            displayWidth = displayHeight * originalAspectRatio;
+        } else {
+            displayWidth = containerWidth;
+            displayHeight = displayWidth / originalAspectRatio;
+        }
+
+        // 2. DECIDIR ROTACIÓN ("si lado largo != lado largo")
         const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
         const isPlacementLandscape = item.w > item.h;
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
+        // 3. APLICAR ESTILOS
         if (needsRotation) {
-            // ======================= TU SOLUCIÓN APLICADA AQUÍ =======================
+            // Si se rota, las dimensiones calculadas se INVIERTEN para la imagen
             imageStyle = {
-                height: `${containerWidth}px`,
-                width: `${containerHeight}px`,
+                width: `${displayHeight}px`,
+                height: `${displayWidth}px`,
                 transform: 'rotate(90deg)',
-                maxWidth: 'unset', // Anulamos el max-width del navegador
-                padding: '3%',     // Añadimos el padding que pediste
             };
-            // Para el caso rotado, no queremos object-contain, ya que las dimensiones son exactas.
-            imageClasses = "transition-transform duration-300"; 
-            // =======================================================================
         } else {
-            // La lógica para la imagen no rotada se mantiene, usa object-contain.
-            const originalAspectRatio = originalJobDims.width / originalJobDims.length;
-            let displayWidth, displayHeight;
-            if (containerWidth / containerHeight > originalAspectRatio) {
-                displayHeight = containerHeight;
-                displayWidth = displayHeight * originalAspectRatio;
-            } else {
-                displayWidth = containerWidth;
-                displayHeight = displayWidth / originalAspectRatio;
-            }
+            // Si no se rota, se usan las dimensiones tal cual
             imageStyle = {
                 width: `${displayWidth}px`,
                 height: `${displayHeight}px`,
             };
         }
+        // --- FIN DE LA LÓGICA ---
     }
 
     return (
@@ -67,7 +67,8 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
-                    className={imageClasses}
+                    // Eliminamos TODAS las clases de tamaño. El control es 100% de JS.
+                    className="transition-transform duration-300" 
                     style={imageStyle}
                 />
             ) : (
@@ -76,8 +77,6 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         </div>
     );
 };
-
-// ... El resto del archivo (formatCurrency, DynamicLayoutVisualizer, etc.) se mantiene exactamente igual que en la versión anterior.
 
 const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
@@ -101,7 +100,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
             <h4 className="font-semibold text-sm text-center text-white mb-2">{title}</h4>
             <div className={`p-2 border-2 border-dashed ${isInteractive ? 'border-transparent' : 'border-gray-600'} text-center`}>
                 <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
-                    {!isInteractive && <div className="absolute -top-5 left-1-2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
+                    {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
                             const originalJob = originalJobs.find(j => j.id === item.id);
