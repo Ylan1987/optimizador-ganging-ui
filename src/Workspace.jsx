@@ -29,15 +29,22 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     const itemStyle = { left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: item.w * scale, height: item.h * scale };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    const needsRotation = originalJobDims && Math.abs(item.w - originalJobDims.width) > 0.1;
+    // --- INICIO DE LA NUEVA LÓGICA MEJORADA ---
 
-    // AQUÍ ESTÁ LA NUEVA LÓGICA
+    // 1. Determinamos las orientaciones, como sugeriste.
+    const isOriginalPortrait = originalJobDims && originalJobDims.length > originalJobDims.width;
+    const isPlacementPortrait = item.h > item.w;
+
+    // 2. La rotación es necesaria si las orientaciones no coinciden.
+    const needsRotation = originalJobDims && (isOriginalPortrait !== isPlacementPortrait);
+
+    // 3. Calculamos la transformación (rotación y escala).
     let transformStyle = { transform: 'rotate(0deg) scale(1)' };
     if (needsRotation) {
-        // Un elemento rotado debe ser escalado por el ratio de sus lados para llenar el contenedor.
+        // Si hay que rotar, también hay que escalar para llenar el nuevo espacio.
+        // El factor de escala es siempre la proporción entre el lado largo y el lado corto del CONTENEDOR.
         const longSide = Math.max(item.w, item.h);
         const shortSide = Math.min(item.w, item.h);
-        // Nos aseguramos de no dividir por cero
         const scaleFactor = shortSide > 0 ? longSide / shortSide : 1;
         
         transformStyle = {
