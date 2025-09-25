@@ -7,24 +7,26 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
         noClick: true, noKeyboard: true
     });
-    
+
     const containerStyle = {
-        left: item.x * scale + padding/2, 
-        top: item.y * scale + padding/2, 
-        width: item.w * scale, 
+        left: item.x * scale + padding/2,
+        top: item.y * scale + padding/2,
+        width: item.w * scale,
         height: item.h * scale
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    // --- LÓGICA DEFINITIVA BASADA EN TUS INSTRUCCIONES ---
     let imageStyle = {};
     if (originalJobDims && fileForJob) {
+        // --- INICIO DE TU LÓGICA IMPLEMENTADA EN JAVASCRIPT ---
+
         // 1. CALCULAR ESCALA ("Lado largo con lado largo")
         const originalAspectRatio = originalJobDims.width / originalJobDims.length;
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
 
         let displayWidth, displayHeight;
+        // Simulamos 'object-contain' para obtener las dimensiones exactas en píxeles
         if (containerWidth / containerHeight > originalAspectRatio) {
             displayHeight = containerHeight;
             displayWidth = displayHeight * originalAspectRatio;
@@ -40,7 +42,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         
         // 3. APLICAR ESTILOS
         if (needsRotation) {
-            // Si se rota, las dimensiones calculadas se invierten para la imagen
+            // Si se rota, las dimensiones calculadas se INVIERTEN para la imagen
             imageStyle = {
                 width: `${displayHeight}px`,
                 height: `${displayWidth}px`,
@@ -53,6 +55,7 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
                 height: `${displayHeight}px`,
             };
         }
+        // --- FIN DE LA LÓGICA ---
     }
 
     return (
@@ -97,7 +100,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
             <h4 className="font-semibold text-sm text-center text-white mb-2">{title}</h4>
             <div className={`p-2 border-2 border-dashed ${isInteractive ? 'border-transparent' : 'border-gray-600'} text-center`}>
                 <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
-                    {!isInteractive && <div className="absolute -top-5 left-1-2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
+                    {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
                             const originalJob = originalJobs.find(j => j.id === item.id);
@@ -163,7 +166,7 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) 
         return [ { title: "Pliegos a Imprimir", value: `${formatNumber(sheetsToPrint)} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${formatNumber(materialNeeds.factorySheets.quantityNeeded)} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ];
     }, [layout]);
 
-    const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`};
+    const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${layout.materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`};
     const panelB_Data = { title: "Panel B: Imposición en Pliego (Interactivo)", parentSize: layout.pressSheetSize, items: layout.placements, parentLabel: `Pliego ${layout.pressSheetSize.width}x${layout.pressSheetSize.length}`, footerText: `Imprimir <strong class="text-cyan-300">${formatNumber(layout.sheetsToPrint)} + ${layout.machine.overage.amount} demasía</strong> en pliegos.`};
 
     return (
