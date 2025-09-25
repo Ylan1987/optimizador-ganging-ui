@@ -16,50 +16,67 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
+    // ======================= INICIO DEL CAMBIO =======================
+    // 1. Creamos una función que se ejecutará solo al pasar el mouse por encima.
+    const handleMouseEnter = () => {
+        // Ponemos toda la lógica de cálculo y el console.log aquí adentro.
+        if (originalJobDims) {
+            const containerWidth = item.w * scale;
+            const containerHeight = item.h * scale;
+
+            const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
+            const isPlacementLandscape = item.w > item.h;
+            const needsRotation = isOriginalLandscape !== isPlacementLandscape;
+
+            console.log("--- DATOS DEL DIV SELECCIONADO ---", {
+                trabajo: item.id,
+                ancho_original_trabajo_mm: originalJobDims.width,
+                largo_original_trabajo_mm: originalJobDims.length,
+                ancho_final_div_px: containerWidth.toFixed(2),
+                largo_final_div_px: containerHeight.toFixed(2),
+                necesita_rotacion: needsRotation
+            });
+        }
+    };
+    // ======================== FIN DEL CAMBIO =========================
+
+    // La lógica para aplicar los estilos a la imagen se mantiene igual.
     let imageStyle = {};
-    let imageClasses = "transition-transform duration-300"; // Clases base
+    let imageClasses = "transition-transform duration-300";
 
     if (originalJobDims && fileForJob) {
-        // --- INICIO DE TU LÓGICA IMPLEMENTADA EN JAVASCRIPT ---
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
-
         const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
         const isPlacementLandscape = item.w > item.h;
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
-         console.log({
-            item: item,
-            trabajo: item.id,
-            ancho_original: originalJobDims.width,
-            largo_original: originalJobDims.length,
-            ancho_contenedor: item.w,
-            largo_contenedor: item.h,
-            necesita_rotacion: needsRotation
-        });
-
         if (needsRotation) {
-            // TU LÓGICA: Si se rota, la altura de la foto es el ancho del div, y viceversa.
-            imageStyle = {
-                height: `${containerWidth}px`,
-                width: `${containerHeight}px`,
-                transform: 'rotate(90deg)',
-            };
+            imageStyle = { height: `${containerWidth}px`, width: `${containerHeight}px`, transform: 'rotate(90deg)' };
         } else {
-            // SI NO SE ROTA: La imagen simplemente se ajusta a su contenedor.
-            imageStyle = {
-                maxWidth: '100%',
-                maxHeight: '100%',
-            };
-            imageClasses += " object-contain"; // object-contain solo para el caso no rotado
+            const originalAspectRatio = originalJobDims.width / originalJobDims.length;
+            let displayWidth, displayHeight;
+            if (containerWidth / containerHeight > originalAspectRatio) {
+                displayHeight = containerHeight;
+                displayWidth = displayHeight * originalAspectRatio;
+            } else {
+                displayWidth = containerWidth;
+                displayHeight = displayWidth / originalAspectRatio;
+            }
+            imageStyle = { width: `${displayWidth}px`, height: `${displayHeight}px` };
         }
     }
 
     return (
-        <div {...getRootProps()}
-             className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
-             style={containerStyle}>
+        <div 
+            {...getRootProps()}
+            // 2. Añadimos el evento onMouseEnter al div principal.
+            onMouseEnter={handleMouseEnter}
+            className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
+            style={containerStyle}>
+            
             <input {...getInputProps()} />
+            
             {fileForJob?.previewUrl ? (
                 <img
                     src={fileForJob.previewUrl}
