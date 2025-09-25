@@ -2,18 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-// --- NUEVA FUNCIÓN AUXILIAR ---
-// Esta función carga una imagen en memoria para leer sus dimensiones reales.
-const getImageDimensions = (url) => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve({ width: img.width, height: img.height });
-        img.onerror = (err) => reject(err);
-        img.src = url;
-    });
-};
-
-const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya no necesita originalJobDims
+const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobDims }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
         noClick: true, noKeyboard: true
@@ -28,36 +17,39 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
     let imageStyle = {};
-    let imageClasses = "transition-transform duration-300";
+    // La clase 'object-contain' es crucial para el caso no rotado.
+    let imageClasses = "transition-transform duration-300 object-contain";
 
-    // La lógica ahora solo se ejecuta si tenemos un archivo CON SUS DIMENSIONES
-    if (fileForJob && fileForJob.imgWidth) {
+    if (originalJobDims && fileForJob) {
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
 
-        // --- LÓGICA CORREGIDA USANDO LAS DIMENSIONES DE LA IMAGEN REAL ---
-        // 1. Comparamos la orientación de la IMAGEN REAL con la del DIV
-        const isImageLandscape = fileForJob.imgWidth > fileForJob.imgHeight;
-        const isPlacementLandscape = containerWidth > containerHeight;
-        const needsRotation = isImageLandscape !== isPlacementLandscape;
+        const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
+        const isPlacementLandscape = item.w > item.h;
+        const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
         if (needsRotation) {
-            // 2. Si se rota, aplicamos tu regla: H de la foto = W del DIV, y W de la foto = H del DIV
+            // ======================= TU SOLUCIÓN APLICADA AQUÍ =======================
             imageStyle = {
                 height: `${containerWidth}px`,
                 width: `${containerHeight}px`,
                 transform: 'rotate(90deg)',
+                maxWidth: 'unset', // Anulamos el max-width del navegador
+                padding: '3%',     // Añadimos el padding que pediste
             };
+            // Para el caso rotado, no queremos object-contain, ya que las dimensiones son exactas.
+            imageClasses = "transition-transform duration-300"; 
+            // =======================================================================
         } else {
-            // 3. Si no se rota, la escalamos para que quepa (lado largo con lado largo)
-            const imageAspectRatio = fileForJob.imgWidth / fileForJob.imgHeight;
+            // La lógica para la imagen no rotada se mantiene, usa object-contain.
+            const originalAspectRatio = originalJobDims.width / originalJobDims.length;
             let displayWidth, displayHeight;
-            if (containerWidth / containerHeight > imageAspectRatio) {
+            if (containerWidth / containerHeight > originalAspectRatio) {
                 displayHeight = containerHeight;
-                displayWidth = displayHeight * imageAspectRatio;
+                displayWidth = displayHeight * originalAspectRatio;
             } else {
                 displayWidth = containerWidth;
-                displayHeight = displayWidth / imageAspectRatio;
+                displayHeight = displayWidth / originalAspectRatio;
             }
             imageStyle = {
                 width: `${displayWidth}px`,
@@ -85,6 +77,8 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya
     );
 };
 
+// ... El resto del archivo (formatCurrency, DynamicLayoutVisualizer, etc.) se mantiene exactamente igual que en la versión anterior.
+
 const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
 
@@ -107,9 +101,10 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
             <h4 className="font-semibold text-sm text-center text-white mb-2">{title}</h4>
             <div className={`p-2 border-2 border-dashed ${isInteractive ? 'border-transparent' : 'border-gray-600'} text-center`}>
                 <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
-                    {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
+                    {!isInteractive && <div className="absolute -top-5 left-1-2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
+                            const originalJob = originalJobs.find(j => j.id === item.id);
                             return <ImpositionItem
                                 key={`${item.id}-${i}`}
                                 item={item}
@@ -117,7 +112,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                                 padding={padding}
                                 onDrop={onDrop}
                                 fileForJob={jobFiles[item.id]}
-                                // originalJobDims ya no es necesario para la lógica de rotación
+                                originalJobDims={originalJob ? { width: originalJob.width, length: originalJob.length } : null}
                             />;
                         }
                         const itemW = (item.width || item.w) * scale; const itemH = (item.length || item.h) * scale;
@@ -231,17 +226,9 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 throw new Error(result.details || result.errorMessage || 'Error desconocido del servidor.');
             }
             
-            // --- CAMBIO CLAVE: LEEMOS LAS DIMENSIONES DE LA IMAGEN DEVUELTA ---
-            const imageDimensions = await getImageDimensions(result.previewImage);
-            
             setJobFiles(prev => ({ 
                 ...prev, 
-                [jobName]: { 
-                    file: file, 
-                    previewUrl: result.previewImage,
-                    imgWidth: imageDimensions.width,  // Guardamos el ancho real
-                    imgHeight: imageDimensions.height // Guardamos el alto real
-                }
+                [jobName]: { file: file, previewUrl: result.previewImage }
             }));
             setMessage(`Archivo para "${jobName}" validado y cargado.`);
 
