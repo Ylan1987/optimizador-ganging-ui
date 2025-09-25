@@ -4,15 +4,29 @@ import { useDropzone } from 'react-dropzone';
 
 // --- COMPONENTES INTERNOS AUXILIARES ---
 
-const PDFPreview = ({ previewUrl, needsRotation }) => (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden">
-        <img
-            src={previewUrl}
-            alt="Previsualización"
-            className={`max-w-full max-h-full object-contain transition-transform duration-300 ${needsRotation ? 'rotate-90' : ''}`}
-        />
-    </div>
-);
+const PDFPreview = ({ previewUrl, needsRotation }) => {
+    // Clases base para la imagen
+    const baseClasses = 'object-contain transition-transform duration-300';
+
+    // Clases condicionales para el tamaño y la rotación
+    const sizingClasses = needsRotation
+        // Para la imagen ROTADA:
+        // 'max-h-full' limita el nuevo ancho visual.
+        // 'max-w-[100vh]' elimina la restricción de ancho original, permitiendo que la imagen crezca.
+        ? 'rotate-90 max-h-full max-w-[100vh]'
+        // Para la imagen NORMAL:
+        : 'max-w-full max-h-full';
+
+    return (
+        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <img
+                src={previewUrl}
+                alt="Previsualización"
+                className={`${baseClasses} ${sizingClasses}`}
+            />
+        </div>
+    );
+};
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobDims }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
