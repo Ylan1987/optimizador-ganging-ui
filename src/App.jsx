@@ -410,6 +410,7 @@ export default function App() {
             const layoutData = {
                 sheet_config: layout.pressSheetSize,
                 jobs: requiredJobs.map(job => {
+                    // Buscamos los detalles originales del trabajo para obtener las dimensiones
                     const jobDetails = allJobsInApiResponse.find(j => j.id === job.name);
                     return {
                         job_name: job.name,
@@ -421,12 +422,24 @@ export default function App() {
 
             const formData = new FormData();
             formData.append('layout_data', JSON.stringify(layoutData));
+            
             requiredJobs.forEach(job => {
-                formData.append('files', jobFiles[job.name], job.name);
+                // --- INICIO DE LA CORRECCIÓN ---
+                // Antes: formData.append('files', jobFiles[job.name], job.name);
+                // Ahora, accedemos a la propiedad .file del objeto.
+                formData.append('files', jobFiles[job.name].file, job.name);
+                // --- FIN DE LA CORRECCIÓN ---
             });
 
-            const pythonApiUrl = 'https://preprensa-api-git-main-ylan1987.vercel.app/api'; // O la URL de tu API de Python
-            const response = await fetch(`${pythonApiUrl}/generate-imposition`, { method: 'POST', body: formData });
+            // La URL de la API de imposición
+            const pythonApiUrl = 'https://ganging-optimizer.vercel.app/api'; 
+            const response = await fetch(`${pythonApiUrl}/generate-imposition`, { 
+                method: 'POST',
+                headers: {
+                    'x-vercel-protection-bypass': '9NcyUFK5OAlsMPdCOKD9FgttJzd9G7Op'
+                },
+                body: formData 
+            });
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -446,6 +459,7 @@ export default function App() {
 
         } catch (error) {
             localSetMessage(`Error: ${error.message}`);
+            console.error("Error al generar imposición:", error);
         } finally {
             setLoading(false);
         }
