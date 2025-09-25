@@ -8,80 +8,55 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         noClick: true, noKeyboard: true
     });
 
+    // --- LÓGICA CORREGIDA Y SIMPLIFICADA ---
+
+    // 1. Calculamos las dimensiones REALES del contenedor en píxeles.
+    const containerWidth = item.w * scale;
+    const containerHeight = item.h * scale;
+
     const containerStyle = {
         left: item.x * scale + padding/2,
         top: item.y * scale + padding/2,
-        width: item.w * scale,
-        height: item.h * scale
+        width: `${containerWidth}px`,
+        height: `${containerHeight}px`,
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    // ======================= INICIO DEL CAMBIO =======================
-    // 1. Creamos una función que se ejecutará solo al pasar el mouse por encima.
-    const handleMouseEnter = () => {
-        // Ponemos toda la lógica de cálculo y el console.log aquí adentro.
-        if (originalJobDims) {
-            const containerWidth = item.w * scale;
-            const containerHeight = item.h * scale;
-
-            const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
-            const isPlacementLandscape = item.w > item.h;
-            const needsRotation = isOriginalLandscape !== isPlacementLandscape;
-
-            console.log("--- DATOS DEL DIV SELECCIONADO ---", {
-                trabajo: item.id,
-                ancho_original_trabajo_mm: originalJobDims.width,
-                largo_original_trabajo_mm: originalJobDims.length,
-                ancho_final_div_px: containerWidth.toFixed(2),
-                largo_final_div_px: containerHeight.toFixed(2),
-                necesita_rotacion: needsRotation
-            });
-        }
-    };
-    // ======================== FIN DEL CAMBIO =========================
-
-    // La lógica para aplicar los estilos a la imagen se mantiene igual.
     let imageStyle = {};
-    let imageClasses = "transition-transform duration-300";
-
     if (originalJobDims && fileForJob) {
-        const containerWidth = item.w * scale;
-        const containerHeight = item.h * scale;
+        // 2. Comparamos orientaciones (esto estaba bien).
         const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
-        const isPlacementLandscape = item.w > item.h;
+        const isPlacementLandscape = containerWidth > containerHeight; // Usamos las dimensiones reales
         const needsRotation = isOriginalLandscape !== isPlacementLandscape;
         
+        // 3. Aplicamos los estilos de forma directa y sin cálculos intermedios complejos.
         if (needsRotation) {
-            imageStyle = { height: `${containerWidth}px`, width: `${containerHeight}px`, transform: 'rotate(90deg)' };
+            // Si rota, la imagen ocupa el 100% del contenedor y se rota.
+            // El navegador se encarga de ajustar el aspect ratio con object-contain.
+            imageStyle = {
+                width: '100%',
+                height: '100%',
+                transform: 'rotate(90deg)',
+            };
         } else {
-            const originalAspectRatio = originalJobDims.width / originalJobDims.length;
-            let displayWidth, displayHeight;
-            if (containerWidth / containerHeight > originalAspectRatio) {
-                displayHeight = containerHeight;
-                displayWidth = displayHeight * originalAspectRatio;
-            } else {
-                displayWidth = containerWidth;
-                displayHeight = displayWidth / originalAspectRatio;
-            }
-            imageStyle = { width: `${displayWidth}px`, height: `${displayHeight}px` };
+            // Si no rota, simplemente ocupa el espacio.
+            imageStyle = {
+                width: '100%',
+                height: '100%',
+            };
         }
     }
-
+    
     return (
-        <div 
-            {...getRootProps()}
-            // 2. Añadimos el evento onMouseEnter al div principal.
-            onMouseEnter={handleMouseEnter}
-            className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
-            style={containerStyle}>
-            
+        <div {...getRootProps()}
+             className={`absolute border-2 border-dashed transition-colors flex justify-center items-center overflow-hidden ${activeClass}`}
+             style={containerStyle}>
             <input {...getInputProps()} />
-            
             {fileForJob?.previewUrl ? (
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
-                    className={imageClasses}
+                    className="object-contain" // La clase clave que se encarga de todo el escalado
                     style={imageStyle}
                 />
             ) : (
@@ -90,6 +65,10 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
         </div>
     );
 };
+
+// ... (El resto del archivo Workspace.jsx se mantiene exactamente igual que la última versión que te pasé)
+// ... (DynamicLayoutVisualizer, CostAccordion, ProductionSheet, Workspace, etc.)
+
 
 const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
