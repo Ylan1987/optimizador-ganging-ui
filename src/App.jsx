@@ -570,7 +570,7 @@ export default function App() {
     
     const renderPage = () => {
         const pythonApiUrl = 'https://preprensa-api.vercel.app/api'; // O la URL de tu API
-        if (loading) { return <div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin text-cyan-400" size={48} /></div>; }
+        //if (loading) { return <div className="flex items-center justify-center h-full w-full"><Loader2 className="animate-spin text-cyan-400" size={48} /></div>; }
         if (error) { return <div className="text-center p-4 text-red-400"><h1>Error de Conexión</h1><p>{error}</p></div>; }
         switch (currentPage) {
             case 'cotizador':
@@ -604,18 +604,32 @@ export default function App() {
     };
     
     const NavItem = ({ page, label, icon: Icon }) => ( <button onClick={() => setCurrentPage(page)} className={`flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg transition-colors ${ currentPage === page ? 'bg-cyan-600/20 text-cyan-300' : 'text-gray-400 hover:bg-slate-700/50 hover:text-white'}`}> <Icon size={20} /> <span className="font-semibold">{label}</span> </button> );
-    return ( 
-        <div className="bg-slate-900 text-gray-50 min-h-screen font-sans flex"> 
-            <aside className="w-64 bg-slate-800/30 border-r border-gray-700 p-4 flex flex-col"> 
+     return (
+        <div className="bg-slate-900 text-gray-50 min-h-screen font-sans flex">
+            <aside className="w-64 bg-slate-800/30 border-r border-gray-700 p-4 flex flex-col">
                 <div className="mb-8 flex items-center gap-3"> <img src="https://i.imgur.com/r42B5p2.png" alt="Logo Diagonal" className="h-10 opacity-80"/> <div>
-        <h1 className="font-bold text-xl text-white">Optimizador</h1><p className="text-xs text-gray-400">Imprenta Diagonal</p></div> </div> 
-            <nav className="flex flex-col gap-2"> 
-            <NavItem page="cotizador" label="Cotizador" icon={Calculator} /> <NavItem page="imposicion" label="Imposición" icon={Wand2} /><h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3 mt-4 mb-1">Configuración</h2> <NavItem page="maquinas" label="Máquinas" icon={Printer} /> 
-            <NavItem page="materiales" label="Materiales" icon={FileUp} /> <NavItem page="cortes" label="Cortes" icon={Scissors} /> <NavItem page="general" label="Ajustes Generales" icon={Settings} /> </nav> </aside> 
-            <main className="flex-1 overflow-y-auto bg-slate-900"> {renderPage()} </main> 
-            <style>{` .custom-select option 
-            { background-color: 
-            #1f2f37;
-             color: #F9FAFB; } `}
-            </style> </div> );
+                <h1 className="font-bold text-xl text-white">Optimizador</h1><p className="text-xs text-gray-400">Imprenta Diagonal</p></div> </div>
+                <nav className="flex flex-col gap-2">
+                    <NavItem page="cotizador" label="Cotizador" icon={Calculator} />
+                    <NavItem page="imposicion" label="Imposición" icon={Wand2} />
+                    <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-3 mt-4 mb-1">Configuración</h2>
+                    <NavItem page="maquinas" label="Máquinas" icon={Printer} />
+                    <NavItem page="materiales" label="Materiales" icon={FileUp} />
+                    <NavItem page="cortes" label="Cortes" icon={Scissors} />
+                    <NavItem page="general" label="Ajustes Generales" icon={Settings} />
+                </nav>
+            </aside>
+            <main className="flex-1 overflow-y-auto bg-slate-900 relative"> {/* <-- AÑADIMOS LA CLASE `relative` */}
+                {/* ESTE ES EL NUEVO LOADER, RENDERIZADO ENCIMA DEL CONTENIDO */}
+                {loading && (
+                    <div className="absolute inset-0 bg-slate-900/70 flex items-center justify-center z-50">
+                        <Loader2 className="animate-spin text-cyan-400" size={48} />
+                    </div>
+                )}
+                {/* La página se renderiza siempre, por debajo del loader si está activo */}
+                {renderPage()}
+            </main>
+            <style>{` .custom-select option { background-color: #1f2f37; color: #F9FAFB; } `}</style>
+        </div>
+    );
 }
