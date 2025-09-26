@@ -316,17 +316,42 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
     const removeJob = (id) => setJobs(p => p.filter(j => j.id !== id));
     const updateJob = (id, patch) => setJobs(p => p.map(j => j.id === id ? {...j, ...patch} : j));
     const materialOptions = materialsData.map(m => ({value: m.name, label: m.name}));
-    return ( <div className="p-4 space-y-6"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Cotizador de Trabajos</h1> <button title="Agregar Trabajo" onClick={addJob} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold flex items-center gap-2"><Plus size={20}/> Agregar Trabajo</button> </header> <div className="space-y-4"> {jobs.map(job => { const selectedMaterial = materialsData.find(m => m.name === job.material.name); const grammageOptions = selectedMaterial ? selectedMaterial.grades.flatMap(g => g.grams).map(gr => ({value: gr, label: `${gr}g`})) : []; return ( <div key={job.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-3 mb-4"> <EditableField value={job.name} onChange={e => updateJob(job.id, {name: e.target.value})} isEditing={editingField === `${job.id}-name`} onStartEdit={() => setEditingField(`${job.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg !font-semibold" /> <IconButton title="Eliminar Trabajo" onClick={() => removeJob(job.id)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"> 
+    return ( <div className="p-4 space-y-6"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Cotizador de Trabajos</h1> <button title="Agregar Trabajo" onClick={addJob} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold flex items-center gap-2"><Plus size={20}/> Agregar Trabajo</button> </header> <div className="space-y-4"> {jobs.map(job => { const selectedMaterial = materialsData.find(m => m.name === job.material.name); const grammageOptions = selectedMaterial ? selectedMaterial.grades.flatMap(g => g.grams).map(gr => ({value: gr, label: `${gr}g`})) : []; return ( <div key={job.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-3 mb-4"> <EditableField value={job.name} onChange={e => updateJob(job.id, {name: e.target.value})} isEditing={editingField === `${job.id}-name`} onStartEdit={() => setEditingField(`${job.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg !font-semibold" /> <IconButton title="Eliminar Trabajo" onClick={() => removeJob(job.id)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> 
+       
 
-            <div className="grid grid-cols-4 gap-2"> {/* <-- Cambiado a 4 columnas */}
-                <LabeledField label="Ancho (mm)"><EditableField type="number" value={job.width} onChange={e => updateJob(job.id, {width: toNum(e.target.value)})} isEditing={editingField === `${job.id}-w`} onStartEdit={()=>setEditingField(`${job.id}-w`)} onEndEdit={()=>setEditingField(null)} /></LabeledField>
-                <LabeledField label="Largo (mm)"><EditableField type="number" value={job.length} onChange={e => updateJob(job.id, {length: toNum(e.target.value)})} isEditing={editingField === `${job.id}-l`} onStartEdit={()=>setEditingField(`${job.id}-l`)} onEndEdit={()=>setEditingField(null)} /></LabeledField>
-                {/* CAMPO NUEVO PARA SANGRADO */}
-                <LabeledField label="Sangrado (mm)"><EditableField type="number" value={job.bleed} onChange={e => updateJob(job.id, {bleed: toNum(e.target.value)})} isEditing={editingField === `${job.id}-bleed`} onStartEdit={()=>setEditingField(`${job.id}-bleed`)} onEndEdit={()=>setEditingField(null)} /></LabeledField>
-                <LabeledField label="Cantidad"><EditableField type="number" value={job.quantity} onChange={e => updateJob(job.id, {quantity: toNum(e.target.value)})} isEditing={editingField === `${job.id}-q`} onStartEdit={()=>setEditingField(`${job.id}-q`)} onEndEdit={()=>setEditingField(null)} /></LabeledField>
-            </div>
-
-        <div className="grid grid-cols-2 gap-2"> <LabeledField label="Material"><EditableField type="select" value={job.material.name} onChange={e => updateJob(job.id, {material: {name: e.target.value, grammage: ''}})} options={[{value:'', label: 'Seleccionar...'},...materialOptions]} onEndEdit={()=>{}} /></LabeledField> <LabeledField label="Gramaje"><EditableField type="select" value={job.material.grammage} onChange={e => updateJob(job.id, {material: {...job.material, grammage: toNum(e.target.value)}})} options={[{value:'', label: '...'},...grammageOptions]} onEndEdit={()=>{}} /></LabeledField> </div> <div className="grid grid-cols-2 gap-2"> <LabeledField label="Tintas Frente"><EditableField type="number" value={job.frontInks} onChange={e => updateJob(job.id, {frontInks: toNum(e.target.value)})} isEditing={editingField === `${job.id}-f`} onStartEdit={()=>setEditingField(`${job.id}-f`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> <LabeledField label="Tintas Dorso"><EditableField type="number" value={job.backInks} onChange={e => updateJob(job.id, {backInks: toNum(e.target.value)})} isEditing={editingField === `${job.id}-b`} onStartEdit={()=>setEditingField(`${job.id}-b`)} onEndEdit={()=>setEditingField(null)} /></LabeledField> </div> <div className="grid grid-cols-2 gap-2"> <ToggleSwitch label="Rotable" enabled={job.rotatable} onChange={v => updateJob(job.id, {rotatable: v})}/> <ToggleSwitch label="Mismas Planchas F/D" enabled={job.samePlatesForBack} onChange={v => updateJob(job.id, {samePlatesForBack: v})}/> </div> </div> </div> ) })} </div> {jobs.length > 0 && ( <div className="mt-6 flex justify-end"> <button onClick={() => onOptimize(jobs)} className="px-8 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors flex items-center gap-2"> <Wand2 size={20} /> Optimizar Cotización </button> </div> )} </div> );
+       // AHORA
+<div className="flex flex-row flex-wrap gap-x-4 gap-y-3 items-end">
+    <LabeledField label="Ancho (mm)" className="w-20">
+        <EditableField type="number" value={job.width} onChange={e => updateJob(job.id, {width: toNum(e.target.value)})} isEditing={editingField === `${job.id}-w`} onStartEdit={()=>setEditingField(`${job.id}-w`)} onEndEdit={()=>setEditingField(null)} />
+    </LabeledField>
+    <LabeledField label="Largo (mm)" className="w-20">
+        <EditableField type="number" value={job.length} onChange={e => updateJob(job.id, {length: toNum(e.target.value)})} isEditing={editingField === `${job.id}-l`} onStartEdit={()=>setEditingField(`${job.id}-l`)} onEndEdit={()=>setEditingField(null)} />
+    </LabeledField>
+    <LabeledField label="Sangrado (mm)" className="w-24">
+        <EditableField type="number" value={job.bleed} onChange={e => updateJob(job.id, {bleed: toNum(e.target.value)})} isEditing={editingField === `${job.id}-bleed`} onStartEdit={()=>setEditingField(`${job.id}-bleed`)} onEndEdit={()=>setEditingField(null)} />
+    </LabeledField>
+    <LabeledField label="Cantidad" className="w-20">
+        <EditableField type="number" value={job.quantity} onChange={e => updateJob(job.id, {quantity: toNum(e.target.value)})} isEditing={editingField === `${job.id}-q`} onStartEdit={()=>setEditingField(`${job.id}-q`)} onEndEdit={()=>setEditingField(null)} />
+    </LabeledField>
+    <LabeledField label="Material" className="w-40">
+        <EditableField type="select" value={job.material.name} onChange={e => updateJob(job.id, {material: {name: e.target.value, grammage: ''}})} options={[{value:'', label: 'Seleccionar...'},...materialOptions]} onEndEdit={()=>{}} />
+    </LabeledField>
+    <LabeledField label="Gr." className="w-24">
+        <EditableField type="select" value={job.material.grammage} onChange={e => updateJob(job.id, {material: {...job.material, grammage: toNum(e.target.value)}})} options={[{value:'', label: '...'},...grammageOptions]} onEndEdit={()=>{}} />
+    </LabeledField>
+    <LabeledField label="Tintas F." className="w-20">
+        <EditableField type="number" value={job.frontInks} onChange={e => updateJob(job.id, {frontInks: toNum(e.target.value)})} isEditing={editingField === `${job.id}-f`} onStartEdit={()=>setEditingField(`${job.id}-f`)} onEndEdit={()=>setEditingField(null)} />
+    </LabeledField>
+    <LabeledField label="Tintas D." className="w-20">
+        <EditableField type="number" value={job.backInks} onChange={e => updateJob(job.id, {backInks: toNum(e.target.value)})} isEditing={editingField === `${job.id}-b`} onStartEdit={()=>setEditingField(`${job.id}-b`)} onEndEdit={()=>setEditingField(null)} />
+    </LabeledField>
+    <div className="flex-grow flex items-center gap-4 pt-5" style={{ minWidth: '320px' }}>
+        <ToggleSwitch label="Rotable" enabled={job.rotatable} onChange={v => updateJob(job.id, {rotatable: v})}/>
+        <ToggleSwitch label="Mismas Planchas F/D" enabled={job.samePlatesForBack} onChange={v => updateJob(job.id, {samePlatesForBack: v})}/>
+    </div>
+</div>
+        </div> ) })} </div> {jobs.length > 0 && ( <div className="mt-6 flex justify-end"> <button onClick={() => onOptimize(jobs)} className="px-8 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors flex items-center gap-2"> 
+        <Wand2 size={20} /> Optimizar Cotización </button> </div> )} </div> );
 };
 
 
