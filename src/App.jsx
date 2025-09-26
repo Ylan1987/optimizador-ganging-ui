@@ -575,6 +575,7 @@ export default function App() {
                     width: j.width, 
                     length: j.length, 
                     quantity: j.quantity, 
+                    bleed: j.bleed,
                     rotatable: j.rotatable, 
                     material: { 
                         id: materialId, 
