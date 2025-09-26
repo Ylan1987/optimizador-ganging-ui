@@ -2,7 +2,18 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobDims }) => {
+// --- NUEVA FUNCIÓN AUXILIAR ---
+// Esta función carga una imagen en memoria para leer sus dimensiones reales.
+const getImageDimensions = (url) => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.width, height: img.height });
+        img.onerror = (err) => reject(err);
+        img.src = url;
+    });
+};
+
+const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya no necesita originalJobDims
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
         noClick: true, noKeyboard: true
@@ -16,67 +27,54 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJobD
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
-    // ======================= INICIO DEL CAMBIO =======================
-    // 1. Creamos una función que se ejecutará solo al pasar el mouse por encima.
-    const handleMouseEnter = () => {
-        // Ponemos toda la lógica de cálculo y el console.log aquí adentro.
-        if (originalJobDims) {
-            const containerWidth = item.w * scale;
-            const containerHeight = item.h * scale;
-
-            const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
-            const isPlacementLandscape = item.w > item.h;
-            const needsRotation = isOriginalLandscape !== isPlacementLandscape;
-
-            console.log("--- DATOS DEL DIV SELECCIONADO ---", {
-                trabajo: item.id,
-                ancho_original_trabajo_mm: originalJobDims.width,
-                largo_original_trabajo_mm: originalJobDims.length,
-                ancho_final_div_px: containerWidth.toFixed(2),
-                largo_final_div_px: containerHeight.toFixed(2),
-                necesita_rotacion: needsRotation
-            });
-        }
-    };
-    // ======================== FIN DEL CAMBIO =========================
-
-    // La lógica para aplicar los estilos a la imagen se mantiene igual.
     let imageStyle = {};
     let imageClasses = "transition-transform duration-300";
 
-    if (originalJobDims && fileForJob) {
+    // La lógica ahora solo se ejecuta si tenemos un archivo CON SUS DIMENSIONES
+    if (fileForJob && fileForJob.imgWidth) {
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
-        const isOriginalLandscape = originalJobDims.width > originalJobDims.length;
-        const isPlacementLandscape = item.w > item.h;
-        const needsRotation = isOriginalLandscape !== isPlacementLandscape;
+
+        // --- LÓGICA CORREGIDA USANDO LAS DIMENSIONES DE LA IMAGEN REAL ---
+        // 1. Comparamos la orientación de la IMAGEN REAL con la del DIV
+        const isImageLandscape = fileForJob.imgWidth > fileForJob.imgHeight;
+        const isPlacementLandscape = containerWidth > containerHeight;
+        const needsRotation = isImageLandscape !== isPlacementLandscape;
         
         if (needsRotation) {
-            imageStyle = { maxWidth: 'unset', padding: '3%', height: `${containerWidth}px`, width: `${containerHeight}px`, transform: 'rotate(90deg)' };
+            // 2. Si se rota, aplicamos tu regla: H de la foto = W del DIV, y W de la foto = H del DIV
+            imageStyle = {
+                height: `${containerWidth}px`,
+                width: `${containerHeight}px`,
+                transform: 'rotate(90deg)',
+                maxWidth: 'unset',
+                padding: '3%'
+            };
         } else {
-            const originalAspectRatio = originalJobDims.width / originalJobDims.length;
+            // 3. Si no se rota, la escalamos para que quepa (lado largo con lado largo)
+            const imageAspectRatio = fileForJob.imgWidth / fileForJob.imgHeight;
             let displayWidth, displayHeight;
-            if (containerWidth / containerHeight > originalAspectRatio) {
+            if (containerWidth / containerHeight > imageAspectRatio) {
                 displayHeight = containerHeight;
-                displayWidth = displayHeight * originalAspectRatio;
+                displayWidth = displayHeight * imageAspectRatio;
             } else {
                 displayWidth = containerWidth;
-                displayHeight = displayWidth / originalAspectRatio;
+                displayHeight = displayWidth / imageAspectRatio;
             }
-            imageStyle = { maxWidth: 'unset', padding: '3%',  width: `${displayWidth}px`, height: `${displayHeight}px` };
+            imageStyle = {
+                width: `${displayWidth}px`,
+                height: `${displayHeight}px`,
+                maxWidth: 'unset', 
+                padding: '3%'
+            };
         }
     }
 
     return (
-        <div 
-            {...getRootProps()}
-            // 2. Añadimos el evento onMouseEnter al div principal.
-            onMouseEnter={handleMouseEnter}
-            className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
-            style={containerStyle}>
-            
+        <div {...getRootProps()}
+             className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
+             style={containerStyle}>
             <input {...getInputProps()} />
-            
             {fileForJob?.previewUrl ? (
                 <img
                     src={fileForJob.previewUrl}
@@ -116,7 +114,6 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                     {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
-                            const originalJob = originalJobs.find(j => j.id === item.id);
                             return <ImpositionItem
                                 key={`${item.id}-${i}`}
                                 item={item}
@@ -124,7 +121,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                                 padding={padding}
                                 onDrop={onDrop}
                                 fileForJob={jobFiles[item.id]}
-                                originalJobDims={originalJob ? { width: originalJob.width, length: originalJob.length } : null}
+                                // originalJobDims ya no es necesario para la lógica de rotación
                             />;
                         }
                         const itemW = (item.width || item.w) * scale; const itemH = (item.length || item.h) * scale;
@@ -238,9 +235,17 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 throw new Error(result.details || result.errorMessage || 'Error desconocido del servidor.');
             }
             
+            // --- CAMBIO CLAVE: LEEMOS LAS DIMENSIONES DE LA IMAGEN DEVUELTA ---
+            const imageDimensions = await getImageDimensions(result.previewImage);
+            
             setJobFiles(prev => ({ 
                 ...prev, 
-                [jobName]: { file: file, previewUrl: result.previewImage }
+                [jobName]: { 
+                    file: file, 
+                    previewUrl: result.previewImage,
+                    imgWidth: imageDimensions.width,  // Guardamos el ancho real
+                    imgHeight: imageDimensions.height // Guardamos el alto real
+                }
             }));
             setMessage(`Archivo para "${jobName}" validado y cargado.`);
 
