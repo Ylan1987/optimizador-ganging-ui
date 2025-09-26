@@ -453,36 +453,59 @@ export default function App() {
         setCurrentPage('workspace');
     };
 
-    const handleGenerateImposition = async (layout, requiredJobs, jobFiles, allJobsInApiResponse, quoteNumber, localSetMessage) => {
+    const handleGenerateImposition = async (layouts, requiredJobs, jobFiles, allJobsInApiResponse, quoteNumber, localSetMessage) => {
         localSetMessage('Validando y generando pliego...');
         setLoading(true);
         
         try {
+            const jobsForApi = [];
+            const processedJobs = new Set(); // Para evitar procesar el mismo trabajo dos veces si aparece en múltiples layouts
+
+            // Iteramos a través de cada layout de la solución
+            for (const layout of Object.values(layouts)) {
+                // Iteramos a través de cada trabajo que sabemos que está en ESTE layout
+                for (const jobInLayout of layout.jobsInLayout) {
+                    const jobName = jobInLayout.id;
+
+                    if (processedJobs.has(jobName)) {
+                        continue; // Si ya procesamos este trabajo, lo saltamos
+                    }
+
+                    const jobDetails = allJobsInApiResponse.find(j => j.id === jobName);
+                    if (!jobDetails) continue; // Si no encontramos detalles, saltamos (seguridad extra)
+
+                    // Los placements para este trabajo están garantizados de estar en este layout
+                    const placementsForJob = layout.placements.filter(p => p.id === jobName);
+
+                    jobsForApi.push({
+                        job_name: jobName,
+                        trim_box: { 
+                            width: jobDetails.width, 
+                            height: jobDetails.length, // 'length' es correcto aquí
+                            bleed: jobDetails.bleed 
+                        },
+                        placements: placementsForJob,
+                    });
+
+                    processedJobs.add(jobName);
+                }
+            }
+
             const layoutData = {
-                sheet_config: layout.pressSheetSize,
-                jobs: requiredJobs.map(job => {
-                    // Buscamos los detalles originales del trabajo para obtener las dimensiones
-                    const jobDetails = allJobsInApiResponse.find(j => j.id === job.name);
-                    return {
-                        job_name: job.name,
-                        trim_box: { width: jobDetails.width, height: jobDetails.length },
-                        placements: layout.placements.filter(p => p.id === job.name)
-                    };
-                })
+                sheet_config: Object.values(layouts)[0].pressSheetSize,
+                jobs: jobsForApi,
             };
 
             const formData = new FormData();
             formData.append('layout_data', JSON.stringify(layoutData));
             
-            requiredJobs.forEach(job => {
-                // --- INICIO DE LA CORRECCIÓN ---
-                // Antes: formData.append('files', jobFiles[job.name], job.name);
-                // Ahora, accedemos a la propiedad .file del objeto.
-                formData.append('files', jobFiles[job.name].file, job.name);
-                // --- FIN DE LA CORRECCIÓN ---
+            // Usamos la lista de trabajos ya procesada para adjuntar los archivos
+            jobsForApi.forEach(job => {
+                if (jobFiles[job.job_name]) {
+                    formData.append('files', jobFiles[job.job_name].file, job.job_name);
+                }
             });
 
-            // La URL de la API de imposición
             const pythonApiUrl = 'https://ganging-optimizer.vercel.app/api'; 
             const response = await fetch(`${pythonApiUrl}/generate-imposition`, { 
                 method: 'POST',
@@ -493,8 +516,14 @@ export default function App() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Error en la API de imposición.');
+                // Intentamos leer el error como JSON, si falla, mostramos el texto.
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Error en la API de imposición.');
+                } catch (jsonError) {
+                    const errorText = await response.text();
+                    throw new Error(`Error en la API: ${response.status} - ${errorText}`);
+                }
             }
 
             const blob = await response.blob();
