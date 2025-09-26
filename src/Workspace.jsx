@@ -211,7 +211,8 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     const [jobFiles, setJobFiles] = useState({});
     const [message, setMessage] = useState('');
 
-    const onDrop = useCallback(async (acceptedFiles, jobName, expectedWidth, expectedHeight) => {
+    // AHORA
+    const onDrop = useCallback(async (acceptedFiles, jobName, expectedWidth, expectedHeight, bleed) => {
         const file = acceptedFiles[0];
         if (!jobName || !file) return;
 
@@ -222,6 +223,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         formData.append('file', file);
         formData.append('expected_width', expectedWidth);
         formData.append('expected_height', expectedHeight);
+        formData.append('bleed', bleed); // <--- AÑADIDO
 
         try {
             const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
