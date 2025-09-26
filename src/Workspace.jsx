@@ -114,6 +114,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                     {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
                         if (isInteractive) {
+                            const originalJob = originalJobs.find(j => j.id === item.id);
                             return <ImpositionItem
                                 key={`${item.id}-${i}`}
                                 item={item}
@@ -121,7 +122,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                                 padding={padding}
                                 onDrop={onDrop}
                                 fileForJob={jobFiles[item.id]}
-                                // originalJobDims ya no es necesario para la lógica de rotación
+                                originalJob={originalJob} // <--- AÑADIDO
                             />;
                         }
                         const itemW = (item.width || item.w) * scale; const itemH = (item.length || item.h) * scale;
