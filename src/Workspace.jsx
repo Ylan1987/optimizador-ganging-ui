@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-// --- NUEVA FUNCIÓN AUXILIAR ---
 // Esta función carga una imagen en memoria para leer sus dimensiones reales.
 const getImageDimensions = (url) => {
     return new Promise((resolve, reject) => {
@@ -13,12 +12,11 @@ const getImageDimensions = (url) => {
     });
 };
 
-const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya no necesita originalJobDims
+const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        // Ahora pasamos el sangrado del trabajo original a la función onDrop
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h, originalJob.bleed),
         noClick: true, noKeyboard: true,
-        disabled: !originalJob // Deshabilitamos el dropzone si no se encuentra el trabajo
+        disabled: !originalJob
     });
 
     const containerStyle = {
@@ -32,28 +30,25 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya
     let imageStyle = {};
     let imageClasses = "transition-transform duration-300";
 
-    // La lógica ahora solo se ejecuta si tenemos un archivo CON SUS DIMENSIONES
     if (fileForJob && fileForJob.imgWidth) {
         const containerWidth = item.w * scale;
         const containerHeight = item.h * scale;
 
-        // --- LÓGICA CORREGIDA USANDO LAS DIMENSIONES DE LA IMAGEN REAL ---
-        // 1. Comparamos la orientación de la IMAGEN REAL con la del DIV
         const isImageLandscape = fileForJob.imgWidth > fileForJob.imgHeight;
         const isPlacementLandscape = containerWidth > containerHeight;
         const needsRotation = isImageLandscape !== isPlacementLandscape;
         
         if (needsRotation) {
-            // 2. Si se rota, aplicamos tu regla: H de la foto = W del DIV, y W de la foto = H del DIV
+            // ======================= TU SOLUCIÓN APLICADA AQUÍ =======================
             imageStyle = {
                 height: `${containerWidth}px`,
                 width: `${containerHeight}px`,
                 transform: 'rotate(90deg)',
-                maxWidth: 'unset',
-                padding: '3%'
+                maxWidth: 'unset', // Añadido como pediste
+                padding: '3%',     // Añadido como pediste
             };
+            // =======================================================================
         } else {
-            // 3. Si no se rota, la escalamos para que quepa (lado largo con lado largo)
             const imageAspectRatio = fileForJob.imgWidth / fileForJob.imgHeight;
             let displayWidth, displayHeight;
             if (containerWidth / containerHeight > imageAspectRatio) {
@@ -66,9 +61,8 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya
             imageStyle = {
                 width: `${displayWidth}px`,
                 height: `${displayHeight}px`,
-                maxWidth: 'unset', 
-                padding: '3%'
             };
+            imageClasses += " object-contain";
         }
     }
 
@@ -124,7 +118,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                                 padding={padding}
                                 onDrop={onDrop}
                                 fileForJob={jobFiles[item.id]}
-                                originalJob={originalJob} // <--- AÑADIDO
+                                originalJob={originalJob}
                             />;
                         }
                         const itemW = (item.width || item.w) * scale; const itemH = (item.length || item.h) * scale;
@@ -211,7 +205,6 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     const [jobFiles, setJobFiles] = useState({});
     const [message, setMessage] = useState('');
 
-    // AHORA
     const onDrop = useCallback(async (acceptedFiles, jobName, expectedWidth, expectedHeight, bleed) => {
         const file = acceptedFiles[0];
         if (!jobName || !file) return;
@@ -223,7 +216,7 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
         formData.append('file', file);
         formData.append('expected_width', expectedWidth);
         formData.append('expected_height', expectedHeight);
-        formData.append('bleed', bleed); // <--- AÑADIDO
+        formData.append('bleed', bleed);
 
         try {
             const response = await fetch('https://ganging-optimizer.vercel.app/api/validate-and-preview-pdf', {
@@ -237,10 +230,9 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
             const result = await response.json();
 
             if (!response.ok || !result.isValid) {
-                throw new Error(result.details || result.errorMessage || 'Error desconocido del servidor.');
+                throw new Error(result.errorMessage || 'Error desconocido del servidor.');
             }
             
-            // --- CAMBIO CLAVE: LEEMOS LAS DIMENSIONES DE LA IMAGEN DEVUELTA ---
             const imageDimensions = await getImageDimensions(result.previewImage);
             
             setJobFiles(prev => ({ 
@@ -248,8 +240,8 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 [jobName]: { 
                     file: file, 
                     previewUrl: result.previewImage,
-                    imgWidth: imageDimensions.width,  // Guardamos el ancho real
-                    imgHeight: imageDimensions.height // Guardamos el alto real
+                    imgWidth: imageDimensions.width,
+                    imgHeight: imageDimensions.height
                 }
             }));
             setMessage(`Archivo para "${jobName}" validado y cargado.`);
@@ -273,12 +265,12 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     const { requiredJobs, allFilesUploaded } = useMemo(() => {
         if (!selectedSolution) return { requiredJobs: [], allFilesUploaded: false };
-        const layoutKey = selectedSolution.summary ? selectedSolution.productionPlan[0].id : Object.keys(selectedSolution.layouts)[0];
-        const layout = selectedSolution.layouts[layoutKey];
-        if (!layout || !layout.jobsInLayout) return { requiredJobs: [], allFilesUploaded: false };
-        const jobCounts = {};
-        layout.placements.forEach(p => { jobCounts[p.id] = (jobCounts[p.id] || 0) + 1; });
-        const jobs = layout.jobsInLayout.map(j => ({ name: j.id, quantity: jobCounts[j.id] || 0 }));
+        const allJobsInPlan = [...new Set(selectedSolution.layouts ? Object.values(selectedSolution.layouts).flatMap(l => l.jobsInLayout.map(j => j.id)) : [])];
+        const jobs = allJobsInPlan.map(jobId => {
+            const layout = selectedSolution.layouts ? Object.values(selectedSolution.layouts).find(l => l.jobsInLayout.some(j => j.id === jobId)) : null;
+            const quantity = layout ? layout.placements.filter(p => p.id === jobId).length : 0;
+            return { name: jobId, quantity };
+        });
         const allUploaded = jobs.length > 0 && jobs.every(job => !!jobFiles[job.name]);
         return { requiredJobs: jobs, allFilesUploaded: allUploaded };
     }, [selectedSolution, jobFiles]);
@@ -291,10 +283,8 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     
     const handleGenerateClick = () => {
         if (!selectedSolution) return;
-        const layoutKey = selectedSolution.summary ? selectedSolution.productionPlan[0].id : Object.keys(selectedSolution.layouts)[0];
-        const layout = selectedSolution.layouts[layoutKey];
         const allJobsInApiResponse = apiResponse.jobs;
-        onGenerateImposition(layout, requiredJobs, jobFiles, allJobsInApiResponse, quoteNumber, setMessage);
+        onGenerateImposition(selectedSolution.layouts, requiredJobs, jobFiles, allJobsInApiResponse, quoteNumber, setMessage);
     };
 
     if (!selectedSolution) return <div className="p-6 text-center text-gray-400">Cargando solución...</div>;
