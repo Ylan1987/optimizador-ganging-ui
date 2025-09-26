@@ -15,8 +15,10 @@ const getImageDimensions = (url) => {
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob }) => { // Ya no necesita originalJobDims
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h),
-        noClick: true, noKeyboard: true
+        // Ahora pasamos el sangrado del trabajo original a la función onDrop
+        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h, originalJob.bleed),
+        noClick: true, noKeyboard: true,
+        disabled: !originalJob // Deshabilitamos el dropzone si no se encuentra el trabajo
     });
 
     const containerStyle = {
