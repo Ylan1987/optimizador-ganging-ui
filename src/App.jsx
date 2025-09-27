@@ -319,7 +319,7 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
     return ( <div className="p-4 space-y-6"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Cotizador de Trabajos</h1> <button title="Agregar Trabajo" onClick={addJob} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold flex items-center gap-2"><Plus size={20}/> Agregar Trabajo</button> </header> <div className="space-y-4"> {jobs.map(job => { const selectedMaterial = materialsData.find(m => m.name === job.material.name); const grammageOptions = selectedMaterial ? selectedMaterial.grades.flatMap(g => g.grams).map(gr => ({value: gr, label: `${gr}g`})) : []; return ( <div key={job.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-3 mb-4"> <EditableField value={job.name} onChange={e => updateJob(job.id, {name: e.target.value})} isEditing={editingField === `${job.id}-name`} onStartEdit={() => setEditingField(`${job.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg !font-semibold" /> <IconButton title="Eliminar Trabajo" onClick={() => removeJob(job.id)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> 
        
 
-       // AHORA
+
 <div className="flex flex-row flex-wrap gap-x-4 gap-y-3 items-end">
     <LabeledField label="Ancho (mm)" className="w-20">
         <EditableField type="number" value={job.width} onChange={e => updateJob(job.id, {width: toNum(e.target.value)})} isEditing={editingField === `${job.id}-w`} onStartEdit={()=>setEditingField(`${job.id}-w`)} onEndEdit={()=>setEditingField(null)} />
