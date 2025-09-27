@@ -14,7 +14,7 @@ const getImageDimensions = (url) => {
 
 const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.w, item.h, originalJob.bleed),
+        onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.width, item.length, originalJob.bleed),
         noClick: true, noKeyboard: true,
         disabled: !originalJob
     });
@@ -22,8 +22,8 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob 
     const containerStyle = {
         left: item.x * scale + padding/2,
         top: item.y * scale + padding/2,
-        width: item.w * scale,
-        height: item.h * scale
+        width: item.width * scale,  // <-- Usamos item.width
+        height: item.length * scale // <-- Usamos item.length
     };
     const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
@@ -31,23 +31,21 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob 
     let imageClasses = "transition-transform duration-300";
 
     if (fileForJob && fileForJob.imgWidth) {
-        const containerWidth = item.w * scale;
-        const containerHeight = item.h * scale;
+        const containerWidth = item.width * scale;  // <-- Usamos item.width
+        const containerHeight = item.length * scale; // <-- Usamos item.length
 
         const isImageLandscape = fileForJob.imgWidth > fileForJob.imgHeight;
         const isPlacementLandscape = containerWidth > containerHeight;
         const needsRotation = isImageLandscape !== isPlacementLandscape;
         
         if (needsRotation) {
-            // ======================= TU SOLUCIÓN APLICADA AQUÍ =======================
             imageStyle = {
                 height: `${containerWidth}px`,
                 width: `${containerHeight}px`,
                 transform: 'rotate(90deg)',
-                maxWidth: 'unset', // Añadido como pediste
-                padding: '3%',     // Añadido como pediste
+                maxWidth: 'unset',
+                padding: '3%'
             };
-            // =======================================================================
         } else {
             const imageAspectRatio = fileForJob.imgWidth / fileForJob.imgHeight;
             let displayWidth, displayHeight;
