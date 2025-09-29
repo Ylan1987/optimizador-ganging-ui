@@ -516,13 +516,15 @@ export default function App() {
             });
 
             if (!response.ok) {
-                // Intentamos leer el error como JSON, si falla, mostramos el texto.
+                // Leemos la respuesta como texto PRIMERO, para no consumir el 'stream'
+                const errorText = await response.text(); 
                 try {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Error en la API de imposición.');
+                    // Intentamos interpretar el texto como JSON
+                    const errorData = JSON.parse(errorText);
+                    throw new Error(errorData.details || 'Error en la API de imposición.');
                 } catch (jsonError) {
-                    const errorText = await response.text();
-                    throw new Error(`Error en la API: ${response.status} - ${errorText}`);
+                    // Si falla, es porque la respuesta era HTML o texto plano (error 500)
+                    throw new Error(`Error del servidor (500). Revisa los logs de Vercel.`);
                 }
             }
 

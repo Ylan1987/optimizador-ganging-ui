@@ -1,6 +1,3 @@
-// Nombre del archivo: Workspace.jsx
-// ESTADO: CORREGIDO (SINTAXIS ARREGLADA Y MANEJO DE ERRORES MEJORADO)
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, XCircle, Loader2, Download, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -19,28 +16,28 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => onDrop(acceptedFiles, item.id, item.width, item.length, originalJob.bleed),
         noClick: true, noKeyboard: true,
-        disabled:!originalJob
+        disabled: !originalJob
     });
 
     const containerStyle = {
-        left: item.x * scale + padding / 2,
-        top: item.y * scale + padding / 2,
-        width: item.width * scale,
-        height: item.length * scale
+        left: item.x * scale + padding/2,
+        top: item.y * scale + padding/2,
+        width: item.width * scale,  // <-- Usamos item.width
+        height: item.length * scale // <-- Usamos item.length
     };
-    const activeClass = isDragActive? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
+    const activeClass = isDragActive ? 'border-cyan-400 bg-cyan-500/30' : 'border-gray-500 hover:border-cyan-400 hover:bg-cyan-500/10';
 
     let imageStyle = {};
     let imageClasses = "transition-transform duration-300";
 
     if (fileForJob && fileForJob.imgWidth) {
-        const containerWidth = item.width * scale;
-        const containerHeight = item.length * scale;
+        const containerWidth = item.width * scale;  // <-- Usamos item.width
+        const containerHeight = item.length * scale; // <-- Usamos item.length
 
         const isImageLandscape = fileForJob.imgWidth > fileForJob.imgHeight;
         const isPlacementLandscape = containerWidth > containerHeight;
-        const needsRotation = isImageLandscape!== isPlacementLandscape;
-
+        const needsRotation = isImageLandscape !== isPlacementLandscape;
+        
         if (needsRotation) {
             imageStyle = {
                 height: `${containerWidth}px`,
@@ -69,10 +66,10 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob 
 
     return (
         <div {...getRootProps()}
-            className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
-            style={containerStyle}>
+             className={`absolute border-2 border-dashed transition-colors flex justify-center items-center ${activeClass}`}
+             style={containerStyle}>
             <input {...getInputProps()} />
-            {fileForJob?.previewUrl? (
+            {fileForJob?.previewUrl ? (
                 <img
                     src={fileForJob.previewUrl}
                     alt="Previsualización"
@@ -86,26 +83,19 @@ const ImpositionItem = ({ item, scale, padding, onDrop, fileForJob, originalJob 
     );
 };
 
-const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value |
+const formatCurrency = (value) => '$' + new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
+const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value || 0);
 
-| 0);
-const formatNumber = (value) => new Intl.NumberFormat('es-UY').format(value |
-
-| 0);
-
-const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false, originalJobs = }) => {
+const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive = false, originalJobs = [] }) => {
     const { parentSize, items, parentLabel, footerText, title } = layoutData;
-    const itemLabelPrefix = parentLabel.includes('Pliego')? "" : "Pliego";
+    const itemLabelPrefix = parentLabel.includes('Pliego') ? "" : "Pliego";
     const containerSize = 250, padding = 10;
-    const scale = Math.min((containerSize - padding) / (parentSize.width |
-
-| 1), (containerSize - padding) / (parentSize.length |
-| 1));
+    const scale = Math.min((containerSize - padding) / (parentSize.width || 1), (containerSize - padding) / (parentSize.length || 1));
     const jobColors = useMemo(() => {
         const colors = ['#60a5fa80', '#4ade8080', '#facc1580', '#a78bfa80', '#fb923c80', '#f8717180'];
         const borderColors = ['#60a5fa', '#4ade80', '#facc15', '#a78bfa', '#fb923c', '#f87171'];
         const colorMap = {};
-        const uniqueJobIds =;
+        const uniqueJobIds = [...new Set(items.map(j => j.id || 'item'))];
         uniqueJobIds.forEach((id, index) => { colorMap[id] = { bg: colors[index % colors.length], border: borderColors[index % borderColors.length] }; });
         return colorMap;
     }, [items]);
@@ -113,7 +103,7 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
     return (
         <div className="bg-gray-900/50 p-3 rounded-md flex flex-col items-center justify-center h-full">
             <h4 className="font-semibold text-sm text-center text-white mb-2">{title}</h4>
-            <div className={`p-2 border-2 border-dashed ${isInteractive? 'border-transparent' : 'border-gray-600'} text-center`}>
+            <div className={`p-2 border-2 border-dashed ${isInteractive ? 'border-transparent' : 'border-gray-600'} text-center`}>
                 <div className="relative bg-gray-700 inline-block" style={{ width: parentSize.width * scale + padding, height: parentSize.length * scale + padding }}>
                     {!isInteractive && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-slate-800/50 px-2">{parentLabel}</div>}
                     {items.map((item, i) => {
@@ -129,18 +119,10 @@ const DynamicLayoutVisualizer = ({ layoutData, jobFiles, onDrop, isInteractive =
                                 originalJob={originalJob}
                             />;
                         }
-                        const itemW = (item.width |
-
-| item.w) * scale; const itemH = (item.length |
-| item.h) * scale;
-                        const fontSize = Math.min(itemH / 3, itemW / ((item.id |
-
-| itemLabelPrefix).length * 0.6), 14);
-                        const label = item.id? item.id : `${itemLabelPrefix} ${i + 1}`;
-                        return (<div key={i} className="absolute border flex items-center justify-center overflow-hidden bg-gray-200" style={{ left: item.x * scale + padding / 2, top: item.y * scale + padding / 2, width: itemW, height: itemH, backgroundColor: jobColors[item.id |
-
-| 'item']?.bg, borderColor: jobColors[item.id |
-| 'item']?.border, fontSize: `${Math.max(fontSize, 6)}px` }}> <span className="font-bold text-black text-center leading-tight p-0.5 break-all">{label}</span> </div>);
+                        const itemW = (item.width || item.w) * scale; const itemH = (item.length || item.h) * scale;
+                        const fontSize = Math.min(itemH / 3, itemW / ((item.id || itemLabelPrefix).length * 0.6), 14);
+                        const label = item.id ? item.id : `${itemLabelPrefix} ${i + 1}`;
+                        return (<div key={i} className="absolute border flex items-center justify-center overflow-hidden bg-gray-200" style={{ left: item.x * scale + padding/2, top: item.y * scale + padding/2, width: itemW, height: itemH, backgroundColor: jobColors[item.id || 'item']?.bg, borderColor: jobColors[item.id || 'item']?.border, fontSize: `${Math.max(fontSize, 6)}px` }}> <span className="font-bold text-black text-center leading-tight p-0.5 break-all">{label}</span> </div>);
                     })}
                 </div>
             </div>
@@ -153,7 +135,7 @@ const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) 
     const [isOpen, setIsOpen] = useState(defaultOpen);
     return (
         <div className="border-t border-gray-700 last:border-b-0">
-            <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details? 'hover:bg-gray-700/50' : 'cursor-default'}`}>
+            <button onClick={() => details && setIsOpen(!isOpen)} className={`w-full text-left p-2.5 transition-colors ${details ? 'hover:bg-gray-700/50' : 'cursor-default'}`}>
                 <div className="flex justify-between items-center">
                     <div>
                         <p className="font-semibold text-gray-200 text-sm">{title}</p>
@@ -161,7 +143,7 @@ const CostAccordion = ({ title, value, formula, details, defaultOpen = false }) 
                     </div>
                     <div className="flex items-center gap-4">
                         <span className="font-bold text-sm text-gray-50">{formatCurrency(value)}</span>
-                        {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen? 'rotate-180' : ''}`} />}
+                        {details && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
                     </div>
                 </div>
             </button>
@@ -180,21 +162,17 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) 
         const mNeeds = layout.materialNeeds;
         const pNeeds = layout.printNeeds;
         const machine = layout.machine;
-        const chargeableImpressions = Math.max(layout.sheetsToPrint, machine.minImpressionsCharge |
-
-| 0);
-        return }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas`, details: }] }, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details:?.material?.grammage |
-
-| 'N/A'}g)*$${dollarRate}` }] }] }];
-    },);
+        const chargeableImpressions = Math.max(layout.sheetsToPrint, machine.minImpressionsCharge || 0);
+        return [ { title: "Costo de Impresión", value: pCost.totalPrintingCost, details: [ { title: "Costo de Postura", value: pCost.setupCost, formula: "Precio por Plancha × Planchas Totales", details: [{ title: "Cálculo", value: pCost.setupCost, formula: `${formatCurrency(machine.setupCost.price || 0)} × ${pNeeds.totalPlates} planchas` }] }, { title: "Costo de Lavado", value: pCost.washCost, formula: "Costo fijo por limpieza" }, { title: "Costo por Millar", value: pCost.impressionCost, formula: `Tiraje Mín. Cobrable × (Precio/1000) × Pasadas`, details: [{ title: "Cálculo", value: pCost.impressionCost, formula: `${formatNumber(chargeableImpressions)} pliegos × (${formatCurrency(machine.impressionCost.pricePerThousand || 0)} / 1000) × ${pNeeds.passes}` }] } ]}, { title: "Costo de Papel", value: mNeeds.totalMaterialCost, details: [ { title: mNeeds.factorySheets.name || 'Papel', value: mNeeds.totalMaterialCost, formula: `${formatNumber(mNeeds.factorySheets.quantityNeeded)} hojas × ${formatCurrency(mNeeds.totalMaterialCost / (mNeeds.factorySheets.quantityNeeded || 1))} p/hoja`, details: [{ title: 'Nivel Cálculo', value: mNeeds.totalMaterialCost, formula: `(${formatNumber(mNeeds.factorySheets.quantityNeeded)}h*${mNeeds.factorySheets.size.width/1000}m*${mNeeds.factorySheets.size.length/1000}m*${mNeeds.factorySheets.size.usdPerTon}USD/t*${layout.jobsInLayout[0]?.material?.grammage || 'N/A'}g)*$${dollarRate}` }] } ]} ];
+    }, [layout, dollarRate]);
 
     const technicalDetails = useMemo(() => {
         const { printNeeds, materialNeeds, sheetsToPrint, machine, pressSheetSize } = layout;
-        return;
+        return [ { title: "Pliegos a Imprimir", value: `${formatNumber(sheetsToPrint)} en "${pressSheetSize.width/10}x${pressSheetSize.length/10}cm"` }, { title: "Máquina", value: machine.name }, { title: "Hojas de Fábrica", value: `${formatNumber(materialNeeds.factorySheets.quantityNeeded)} (${materialNeeds.factorySheets.size.width}x${materialNeeds.factorySheets.size.length})` }, { title: "Plan de Corte", value: `${materialNeeds.factorySheets.cuttingPlan.cutsPerSheet} pliegos por hoja` }, { title: "Técnica", value: printNeeds.technique }, { title: "Planchas Totales", value: printNeeds.totalPlates }, { title: "Pasadas en Máquina", value: printNeeds.passes }, ];
     }, [layout]);
 
-    const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${layout.materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.` };
-    const panelB_Data = { title: "Panel B: Imposición en Pliego (Interactivo)", parentSize: layout.pressSheetSize, items: layout.placements, parentLabel: `Pliego ${layout.pressSheetSize.width}x${layout.pressSheetSize.length}`, footerText: `Imprimir <strong class="text-cyan-300">${formatNumber(layout.sheetsToPrint)} + ${layout.machine.overage.amount} demasía</strong> en pliegos.` };
+    const panelA_Data = { title: "Panel A: Plan de Corte Gráfico", parentSize: layout.materialNeeds.factorySheets.size, items: layout.materialNeeds.factorySheets.cuttingPlan.positions, parentLabel: `Hoja Fábrica ${layout.materialNeeds.factorySheets.size.width}x${layout.materialNeeds.factorySheets.size.length}`, footerText: `Se necesitan <strong class="text-cyan-300">${formatNumber(layout.materialNeeds.factorySheets.quantityNeeded)}</strong> hojas, cortadas en <strong class="text-cyan-300">${layout.materialNeeds.factorySheets.cuttingPlan.cutsPerSheet}</strong>.`};
+    const panelB_Data = { title: "Panel B: Imposición en Pliego (Interactivo)", parentSize: layout.pressSheetSize, items: layout.placements, parentLabel: `Pliego ${layout.pressSheetSize.width}x${layout.pressSheetSize.length}`, footerText: `Imprimir <strong class="text-cyan-300">${formatNumber(layout.sheetsToPrint)} + ${layout.machine.overage.amount} demasía</strong> en pliegos.`};
 
     return (
         <div className="bg-slate-800/50 border border-gray-700 rounded-lg mb-6 shadow-lg overflow-hidden">
@@ -203,7 +181,7 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) 
                 <div className="md:col-span-3 space-y-6">
                     <div>
                         <h4 className="font-semibold text-gray-300 mb-2">Desglose de Costos</h4>
-                        <div className="bg-gray-900/50 rounded-md overflow-hidden border border-gray-700">{costDetails.map((item, i) => <CostAccordion key={i} {...item} defaultOpen={i === 0} />)}</div>
+                        <div className="bg-gray-900/50 rounded-md overflow-hidden border border-gray-700">{costDetails.map((item, i) => <CostAccordion key={i} {...item} defaultOpen={i===0}/>)}</div>
                     </div>
                     <div>
                         <h4 className="font-semibold text-gray-300 mb-2">Requerimientos Técnicos</h4>
@@ -211,8 +189,8 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) 
                     </div>
                 </div>
                 <div className="md:col-span-2 grid grid-cols-1 gap-6">
-                    <DynamicLayoutVisualizer layoutData={panelA_Data} isInteractive={false} />
-                    <DynamicLayoutVisualizer layoutData={panelB_Data} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} originalJobs={apiResponse.jobs} />
+                   <DynamicLayoutVisualizer layoutData={panelA_Data} isInteractive={false} />
+                   <DynamicLayoutVisualizer layoutData={panelB_Data} jobFiles={jobFiles} onDrop={onDrop} isInteractive={true} originalJobs={apiResponse.jobs} />
                 </div>
             </div>
         </div>
@@ -220,16 +198,14 @@ const ProductionSheet = ({ layout, dollarRate, jobFiles, onDrop, apiResponse }) 
 };
 
 export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImposition, dollarRate, isLoading, setLoading }) => {
-    const = useState(0);
-    const [quoteNumber, setQuoteNumber] = useState(apiResponse.quote_number |
-
-| '');
+    const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
+    const [quoteNumber, setQuoteNumber] = useState(apiResponse.quote_number || '');
     const [jobFiles, setJobFiles] = useState({});
     const [message, setMessage] = useState('');
 
     const onDrop = useCallback(async (acceptedFiles, jobName, expectedWidth, expectedHeight, bleed) => {
-        const file = acceptedFiles;
-        if (!jobName ||!file) return;
+        const file = acceptedFiles[0];
+        if (!jobName || !file) return;
 
         setMessage(`Validando "${jobName}"...`);
         setLoading(true);
@@ -249,27 +225,25 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 body: formData,
             });
 
-            // ### CORRECCIÓN: MANEJO DE ERRORES EN FRONT-END ###
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details |
-
-| errorData.error |
-| 'Error desconocido del servidor.');
-            }
-
             const result = await response.json();
 
-            if (!result.isValid) {
-                throw new Error(result.errorMessage);
+            if (!response.ok) {
+                // Si la respuesta no es 200 OK, intentamos leer el error.
+                const errorResult = await response.json();
+                throw new Error(errorResult.errorMessage || 'Error de comunicación con el servidor.');
             }
 
+            if (!result.isValid) {
+                // Si la respuesta es 200 OK pero la validación falló, mostramos el mensaje específico.
+                throw new Error(result.errorMessage);
+            }
+            
             const imageDimensions = await getImageDimensions(result.previewImage);
-
-            setJobFiles(prev => ({
-               ...prev,
-                [jobName]: {
-                    file: file,
+            
+            setJobFiles(prev => ({ 
+                ...prev, 
+                [jobName]: { 
+                    file: file, 
                     previewUrl: result.previewImage,
                     imgWidth: imageDimensions.width,
                     imgHeight: imageDimensions.height
@@ -288,30 +262,30 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
     const { baselineSolution, gangedSolutions } = apiResponse;
     const solutions = useMemo(() => {
-        if (!baselineSolution) return;
-        return).map((s, i) => ({ name: `Solución Ganging Optimizada #${i + 1}`, data: s }))];
-    },);
-
-    const selectedSolution = solutions?.data;
+        if (!baselineSolution) return [];
+        return [ { name: "Solución Base", data: baselineSolution }, ...(gangedSolutions || []).map((s, i) => ({ name: `Solución Ganging Optimizada #${i + 1}`, data: s })) ];
+    }, [baselineSolution, gangedSolutions]);
+    
+    const selectedSolution = solutions[selectedSolutionIndex]?.data;
 
     const { requiredJobs, allFilesUploaded } = useMemo(() => {
-        if (!selectedSolution) return { requiredJobs:, allFilesUploaded: false };
-        const allJobsInPlan =)];
+        if (!selectedSolution) return { requiredJobs: [], allFilesUploaded: false };
+        const allJobsInPlan = [...new Set(selectedSolution.layouts ? Object.values(selectedSolution.layouts).flatMap(l => l.jobsInLayout.map(j => j.id)) : [])];
         const jobs = allJobsInPlan.map(jobId => {
-            const layout = selectedSolution.layouts? Object.values(selectedSolution.layouts).find(l => l.jobsInLayout.some(j => j.id === jobId)) : null;
-            const quantity = layout? layout.placements.filter(p => p.id === jobId).length : 0;
+            const layout = selectedSolution.layouts ? Object.values(selectedSolution.layouts).find(l => l.jobsInLayout.some(j => j.id === jobId)) : null;
+            const quantity = layout ? layout.placements.filter(p => p.id === jobId).length : 0;
             return { name: jobId, quantity };
         });
-        const allUploaded = jobs.length > 0 && jobs.every(job =>!!jobFiles[job.name]);
+        const allUploaded = jobs.length > 0 && jobs.every(job => !!jobFiles[job.name]);
         return { requiredJobs: jobs, allFilesUploaded: allUploaded };
-    },);
+    }, [selectedSolution, jobFiles]);
 
     const handleSaveClick = () => {
         if (!selectedSolution) return;
-        const cost = selectedSolution.summary? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost;
+        const cost = selectedSolution.summary ? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost;
         onSaveQuote(quoteNumber, selectedSolution, cost);
     };
-
+    
     const handleGenerateClick = () => {
         if (!selectedSolution) return;
         const allJobsInApiResponse = apiResponse.jobs;
@@ -319,9 +293,9 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
     };
 
     if (!selectedSolution) return <div className="p-6 text-center text-gray-400">Cargando solución...</div>;
-
+    
     const baseLayouts = Object.values(baselineSolution.layouts);
-    const gangedPlan = selectedSolution.summary? (selectedSolution.productionPlan ||).map(item => selectedSolution.layouts[item.id]).filter(Boolean) :;
+    const gangedPlan = selectedSolution.summary ? (selectedSolution.productionPlan || []).map(item => selectedSolution.layouts[item.id]).filter(Boolean) : [];
 
     return (
         <div className="p-4">
@@ -329,27 +303,23 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                 <div className="flex flex-wrap justify-between items-center gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-sm mr-2 text-gray-300">Ver Solución:</span>
-                        {solutions.map((s, i) => <button key={s.name} onClick={() => setSelectedSolutionIndex(i)} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedSolutionIndex === i? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{s.name}</button>)}
+                        {solutions.map((s, i) => <button key={s.name} onClick={() => setSelectedSolutionIndex(i)} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedSolutionIndex === i ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>{s.name}</button>)}
                     </div>
-                    <button onClick={onBack} className="p-2 rounded bg-white/10 text-white hover:bg-white/20"><ArrowLeft size={16} /> Volver</button>
+                    <button onClick={onBack} className="p-2 rounded bg-white/10 text-white hover:bg-white/20"><ArrowLeft size={16}/> Volver</button>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-700 flex flex-wrap justify-between items-end gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold">Costo Total: <span className="text-cyan-400">{formatCurrency(selectedSolution.summary? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost)}</span></h2>
+                        <h2 className="text-2xl font-bold">Costo Total: <span className="text-cyan-400">{formatCurrency(selectedSolution.summary ? selectedSolution.summary.gangedTotalCost : selectedSolution.total_cost)}</span></h2>
                     </div>
                     <div className="flex items-center gap-2">
-                        <input type="text" value={quoteNumber} onChange={e => setQuoteNumber(e.target.value)} placeholder="Nº de Presupuesto" className="bg-slate-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-40" />
-                        <button onClick={handleSaveClick} disabled={!quoteNumber |
-
-| isLoading} className="p-2 rounded bg-green-600 text-white font-semibold flex items-center gap-2 disabled:opacity-50"> <Save size={16} /> Guardar </button>
+                        <input type="text" value={quoteNumber} onChange={e => setQuoteNumber(e.target.value)} placeholder="Nº de Presupuesto" className="bg-slate-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-40"/>
+                        <button onClick={handleSaveClick} disabled={!quoteNumber || isLoading} className="p-2 rounded bg-green-600 text-white font-semibold flex items-center gap-2 disabled:opacity-50"> <Save size={16}/> Guardar </button>
                     </div>
                 </div>
             </div>
-
-            {(selectedSolution.summary? gangedPlan : baseLayouts).map((layout, index) => (
-                <ProductionSheet key={layout.layoutId |
-
-| index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} apiResponse={apiResponse} />
+            
+            {(selectedSolution.summary ? gangedPlan : baseLayouts).map((layout, index) => (
+                <ProductionSheet key={layout.layoutId || index} layout={layout} dollarRate={dollarRate} jobFiles={jobFiles} onDrop={onDrop} apiResponse={apiResponse} />
             ))}
 
             <div className="bg-slate-800/50 border border-gray-700 rounded-lg mt-6 shadow-lg p-4">
@@ -359,19 +329,17 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
                         <div className="flex flex-wrap gap-3">
                             {requiredJobs.map(job => (
                                 <div key={job.name} className="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-gray-600">
-                                    {jobFiles[job.name]? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-red-500" />}
+                                    {jobFiles[job.name] ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-red-500" />}
                                     <span className="font-semibold">{job.name}</span>
                                     <span className="text-sm text-gray-400">(x{job.quantity})</span>
                                 </div>
                             ))}
                         </div>
-                        {message && <p className={`text-left text-sm mt-3 ${message.startsWith('Error')? 'text-red-400' : 'text-green-400'}`}>{message}</p>}
+                         {message && <p className={`text-left text-sm mt-3 ${message.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{message}</p>}
                     </div>
                     <div className="md:col-span-1">
-                        <button onClick={handleGenerateClick} disabled={!allFilesUploaded |
-
-| isLoading} className="w-full px-6 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 disabled:bg-gray-600 flex items-center justify-center gap-2">
-                            {isLoading? <Loader2 className="animate-spin" /> : <Download />}
+                        <button onClick={handleGenerateClick} disabled={!allFilesUploaded || isLoading} className="w-full px-6 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 disabled:bg-gray-600 flex items-center justify-center gap-2">
+                            {isLoading ? <Loader2 className="animate-spin"/> : <Download />}
                             Generar Pliego
                         </button>
                     </div>
