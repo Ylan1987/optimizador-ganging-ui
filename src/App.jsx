@@ -92,9 +92,8 @@ const SearchResultCard = ({ quote, onSelect }) => (
 );
 
 const ImpositionPage = ({ supabase, onSelectQuote }) => {
-    // CORRECCIÓN: Se añaden los nombres de las variables de estado
-    const = useState('');
-    const = useState();
+    //const = useState('');
+    //const = useState();
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [page, setPage] = useState(1);
@@ -106,10 +105,10 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
         setIsLoading(true);
         setMessage('');
         let query = supabase
-           .from('quotes')
-           .select('*')
-           .order('created_at', { ascending: false })
-           .range((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE - 1);
+          .from('quotes')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE - 1);
         if (term) {
             query = query.ilike('quote_number', `%${term}%`);
         }
@@ -662,7 +661,7 @@ export default function App() {
                     onBack={() => { setOptimizationResult(null); setCurrentPage('cotizador'); }}
                     onSaveQuote={handleSaveQuote}
                     onGenerateImposition={handleGenerateImposition}
-                    dollarRate={config.settings.dollarRate}
+                    dollarRate={config.settings?.dollarRate}
                     isLoading={loading}
                     setLoading={setLoading}
                 />;
