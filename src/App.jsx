@@ -1,11 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-// TAREA 4: Añadido FileText para el ícono de CSV y Search para la página de búsqueda
 import { ChevronDown, Plus, Trash2, RotateCcw, Upload, X, ArrowLeft, FileUp, Settings, Printer, Scissors, Calculator, Wand2, Loader2, Save, Search, FileText } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
-// TAREA 1: Ya no importamos ImpositionPage porque la definiremos aquí mismo
-// import { ImpositionPage } from './ImpositionPage';
 import { Workspace } from './Workspace';
-// TAREA 4: Importamos el hook para leer CSV
 import { useCSVReader } from 'react-papaparse';
 
 // --- Importación de react-pdf y su configuración ---
@@ -13,9 +9,7 @@ import { pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configuración del worker para que apunte al archivo copiado en la carpeta 'public'
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
-
 
 // --- SUPABASE CLIENT SETUP ---
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
@@ -29,17 +23,21 @@ if (supabaseUrl && supabaseAnonKey) {
 }
 
 // #################################################################################
-// ####### TAREA 2 y 3: COMPONENTE EditableField MEJORADO #######
+// ####### COMPONENTES DE UI REUTILIZABLES #######
 // #################################################################################
 const EditableField = ({ value, onChange, placeholder, type = "text", onStartEdit, onEndEdit, isEditing, options, className = "" }) => {
     const handleKeyDown = (e) => {
-        if (e.key === 'Enter' || e.key === 'Escape') {
+        if (e.key === 'Enter' |
+
+| e.key === 'Escape') {
             (e.target).blur();
         }
     };
 
     const handleViewKeyDown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === 'Enter' |
+
+| e.key === ' ') {
             e.preventDefault();
             onStartEdit();
         }
@@ -71,9 +69,13 @@ const EditableField = ({ value, onChange, placeholder, type = "text", onStartEdi
             onKeyDown={handleViewKeyDown}
             tabIndex={0}
             role="button"
-            aria-label={`Editar ${placeholder || 'campo'}`}
+            aria-label={`Editar ${placeholder |
+
+| 'campo'}`}
         >
-            {value || <span className="text-white/40">{placeholder}</span>}
+            {value |
+
+| <span className="text-white/40">{placeholder}</span>}
         </div>
     );
 };
@@ -84,7 +86,7 @@ const CostModeSelector = ({ value, onChange, options }) => ( <div className="fle
 const ToggleSwitch = ({ label, enabled, onChange }) => ( <div className="flex items-center justify-between bg-black/20 p-2 rounded-md h-full"> <span className="text-sm font-medium text-white/80">{label}</span> <button onClick={() => onChange(!enabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled? 'bg-cyan-600' : 'bg-slate-600'}`}> <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled? 'translate-x-6' : 'translate-x-1'}`} /> </button> </div> );
 
 // #################################################################################
-// ####### TAREA 1: PÁGINA DE BÚSQUEDA CON SCROLL INFINITO #######
+// ####### PÁGINA DE BÚSQUEDA (IMPOSICIÓN) #######
 // #################################################################################
 const SearchResultCard = ({ quote, onSelect }) => (
     <div onClick={() => onSelect(quote)} className="p-4 bg-slate-800 rounded-lg border border-gray-700 hover:border-cyan-500 cursor-pointer transition-colors">
@@ -98,6 +100,7 @@ const SearchResultCard = ({ quote, onSelect }) => (
 );
 
 const ImpositionPage = ({ supabase, onSelectQuote }) => {
+    // CORRECCIÓN: Se añaden los nombres de las variables de estado
     const = useState('');
     const = useState();
     const [isLoading, setIsLoading] = useState(false);
@@ -110,19 +113,15 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
     const fetchQuotes = useCallback(async (term, pageNum) => {
         setIsLoading(true);
         setMessage('');
-
         let query = supabase
            .from('quotes')
            .select('*')
            .order('created_at', { ascending: false })
            .range((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE - 1);
-
         if (term) {
             query = query.ilike('quote_number', `%${term}%`);
         }
-
         const { data, error } = await query;
-
         if (error) {
             setMessage(`Error al buscar: ${error.message}`);
             setSearchResults(prev => pageNum === 1? : prev);
@@ -143,7 +142,6 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
             setSearchResults();
             fetchQuotes(searchTerm, 1);
         }, 500);
-
         return () => clearTimeout(handler);
     },);
 
@@ -156,13 +154,11 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
     const lastElementRef = useCallback(node => {
         if (isLoading) return;
         if (observer.current) observer.current.disconnect();
-
         observer.current = new IntersectionObserver(entries => {
             if (entries.isIntersecting && hasMore) {
                 setPage(prevPage => prevPage + 1);
             }
         });
-
         if (node) observer.current.observe(node);
     }, [isLoading, hasMore]);
 
@@ -179,9 +175,7 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
                     className="w-full bg-slate-800 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:border-cyan-500"
                 />
             </div>
-
             {message &&!isLoading && <p className="text-center text-gray-400">{message}</p>}
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchResults.map((quote, index) => {
                     if (searchResults.length === index + 1) {
@@ -190,7 +184,6 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
                     return <SearchResultCard key={quote.id} quote={quote} onSelect={onSelectQuote} />;
                 })}
             </div>
-
             {isLoading && <div className="flex justify-center mt-4"><Loader2 className="text-cyan-500 animate-spin" size={32} /></div>}
             {!isLoading &&!hasMore && searchResults.length > 0 && <p className="text-center text-gray-500 mt-6">Fin de los resultados.</p>}
         </div>
@@ -198,66 +191,77 @@ const ImpositionPage = ({ supabase, onSelectQuote }) => {
 };
 
 // #################################################################################
-// ####### COMPONENTE 2: PÁGINA DE CONFIGURACIÓN DE MÁQUINAS #######
+// ####### PÁGINA DE CONFIGURACIÓN DE MÁQUINAS #######
 // #################################################################################
 const MachinesAdminPage = ({ initialData, onSave }) => {
-    const [items, setItems] = useState(); const [editingField, setEditingField] = useState(null); const [msg, setMsg] = useState("");
-    useEffect(() => { setItems(initialData.map(m => ({...m, _dirty: false, _snapshot: undefined}))); setMsg(`${initialData.length} máquinas cargadas.`); },);
+    const [items, setItems] = useState();
+    const [editingField, setEditingField] = useState(null);
+    const [msg, setMsg] = useState("");
+    useEffect(() => { setItems(initialData.map(m => ({...m, _dirty: false, _snapshot: undefined }))); setMsg(`${initialData.length} máquinas cargadas.`); },);
     const toNum = (s) => { const n = Number(s); return Number.isFinite(n)? n : null; };
     const mut = (i, patch) => setItems(p => p.map((x, ix) => { if (ix!== i) return x; const snapshot = x._snapshot?? JSON.parse(JSON.stringify(x)); return {...x,...patch, _dirty: true, _snapshot: snapshot }; }));
     const addMachine = () => { const newMachine = { id: `new-${Date.now()}`, name: "Nueva Máquina", is_offset: true, printingBodies: 4, sheetFeedOrientation: 'long_edge', margins: { clamp: 10, tail: 10, sides: 5 }, minSheetSize: { width: 210, length: 297 }, maxSheetSize: { width: 720, length: 1020 }, overage: { amount: 50, perInk: false }, minImpressionsCharge: 1000, setupCost: { price: 2000, perInk: false }, washCost: { price: 500, perInk: false }, impressionCost: { pricePerThousand: 300, perInkPass: false }, duplexChargePrice: 0, price_brackets:, _dirty: true }; setItems(p => [newMachine,...p]); setEditingField(`${newMachine.id}-name`); };
     const cancelCardChanges = (i) => { const snap = items[i]._snapshot; if (!snap) { setItems(p => p.filter((_, ix) => ix!== i)); return; } setItems(p => p.map((x, ix) => ix === i? {...JSON.parse(JSON.stringify(snap)), _dirty: false, _snapshot: undefined } : x)); };
     const saveCardChanges = async (i) => { const { _dirty, _snapshot,...payload } = items[i]; setMsg(`Guardando "${payload.name}"...`); await onSave('machines', payload); setMsg(`Máquina "${payload.name}" guardada.`); mut(i, { _dirty: false, _snapshot: undefined }); };
-    const deleteMachine = async (i) => { if (window.confirm("¿Eliminar máquina?")) { setMsg(`Eliminando...`); await onSave('machines', { id: items[i].id, _delete: true }); setMsg(`Máquina eliminada.`); setItems(p => p.filter((_, ix) => ix!== i)); }};
-    const addBracket = (mi) => { const next = { constraints: { maxLen: 0, maxWid: 0 }, sheetCost: { unit: "per_sheet", value: 0 }}; mut(mi, { price_brackets: [...(items[mi].price_brackets ||), next] }); };
+    const deleteMachine = async (i) => { if (window.confirm("¿Eliminar máquina?")) { setMsg(`Eliminando...`); await onSave('machines', { id: items[i].id, _delete: true }); setMsg(`Máquina eliminada.`); setItems(p => p.filter((_, ix) => ix!== i)); } };
+    const addBracket = (mi) => { const next = { constraints: { maxLen: 0, maxWid: 0 }, sheetCost: { unit: "per_sheet", value: 0 } }; mut(mi, { price_brackets: [...(items[mi].price_brackets ||), next] }); };
     const removeBracket = (mi, bi) => mut(mi, { price_brackets: items[mi].price_brackets.filter((_, idx) => idx!== bi) });
     const updBracket = (mi, bi, patch) => { const next = items[mi].price_brackets.map((b, i) => i === bi? {...b,...patch } : b); mut(mi, { price_brackets: next }); };
-    return ( <div className="space-y-5 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Máquinas</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Máquina" onClick={addMachine} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20}/></button> </header> <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"> {items.map((m, i) => ( <div key={m.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4 flex flex-col gap-4"> <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-3"> <EditableField value={m.name} onChange={(e) => mut(i, {name: e.target.value})} isEditing={editingField === `${m.id}-name`} onStartEdit={() => setEditingField(`${m.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg!font-semibold" /> <div className="flex items-center gap-1.5"> {m._dirty && (<><IconButton title="Deshacer" onClick={() => cancelCardChanges(i)}><RotateCcw size={18} /></IconButton><IconButton title="Guardar" onClick={() => saveCardChanges(i)} colorClass="text-green-400"><Upload size={18} /></IconButton></>)} <IconButton title="Eliminar" onClick={()=>deleteMachine(i)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> </div> <div className="border-b border-gray-700 pb-4"> <h3 className="text-base font-semibold text-white/90 mb-3">Propiedades Físicas</h3> <div className="space-y-3"> <div className="grid grid-cols-2 gap-4"> <LabeledField label="Tipo de Máquina"><EditableField type="select" value={m.is_offset} onChange={(e) => mut(i, {is_offset: e.target.value === 'true'})} onEndEdit={()=>{}} options={} /></LabeledField> <LabeledField label="Cuerpos de Impresión"><EditableField type="number" value={m.printingBodies} onChange={(e) => mut(i, {printingBodies: toNum(e.target.value)})} isEditing={editingField === `${m.id}-bodies`} onStartEdit={() => setEditingField(`${m.id}-bodies`)} onEndEdit={() => setEditingField(null)}/></LabeledField> </div> <LabeledField label="Márgenes (Pinza / Cola / Lados) en mm"><div className="grid grid-cols-3 gap-2"><EditableField type="number" placeholder="P" value={m.margins.clamp} onChange={(e) => mut(i, {margins: {...m.margins, clamp: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-mClamp`} onStartEdit={()=>setEditingField(`${m.id}-mClamp`)} onEndEdit={()=>setEditingField(null)}/><EditableField type="number" placeholder="C" value={m.margins.tail} onChange={(e) => mut(i, {margins: {...m.margins, tail: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-mTail`} onStartEdit={()=>setEditingField(`${m.id}-mTail`)} onEndEdit={()=>setEditingField(null)} /><EditableField type="number" placeholder="L" value={m.margins.sides} onChange={(e) => mut(i, {margins: {...m.margins, sides: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-mSides`} onStartEdit={()=>setEditingField(`${m.id}-mSides`)} onEndEdit={()=>setEditingField(null)} /></div></LabeledField> <div className="grid grid-cols-2 gap-4"> <LabeledField label="Tam. Mín. Pliego (Ancho x Largo) en mm"><div className="flex gap-2"><EditableField type="number" value={m.minSheetSize.width} onChange={(e) => mut(i, {minSheetSize: {...m.minSheetSize, width: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-minW`} onStartEdit={()=>setEditingField(`${m.id}-minW`)} onEndEdit={()=>setEditingField(null)}/><EditableField type="number" value={m.minSheetSize.length} onChange={(e) => mut(i, {minSheetSize: {...m.minSheetSize, length: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-minL`} onStartEdit={()=>setEditingField(`${m.id}-minL`)} onEndEdit={()=>setEditingField(null)} /></div></LabeledField> <LabeledField label="Tam. Máx. Pliego (Ancho x Largo) en mm"><div className="flex gap-2"><EditableField type="number" value={m.maxSheetSize.width} onChange={(e) => mut(i, {maxSheetSize: {...m.maxSheetSize, width: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-maxW`} onStartEdit={()=>setEditingField(`${m.id}-maxW`)} onEndEdit={()=>setEditingField(null)}/><EditableField type="number" value={m.maxSheetSize.length} onChange={(e) => mut(i, {maxSheetSize: {...m.maxSheetSize, length: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-maxL`} onStartEdit={()=>setEditingField(`${m.id}-maxL`)} onEndEdit={()=>setEditingField(null)} /></div></LabeledField> </div> </div> </div> <div className="border-b border-gray-700 pb-4"> <h3 className="text-base font-semibold text-white/90 mb-3">Reglas de Costeo</h3> <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"> <LabeledField label="Demasía (Pliegos Extra)"><div className="flex items-center gap-2"><EditableField type="number" value={m.overage.amount} onChange={(e) => mut(i, {overage: {...m.overage, amount: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-overage`} onStartEdit={()=>setEditingField(`${m.id}-overage`)} onEndEdit={()=>setEditingField(null)}/><CostModeSelector value={m.overage.perInk} onChange={c => mut(i, {overage: {...m.overage, perInk: c}})} options={} /></div></LabeledField> <LabeledField label="Mínimo de Impresión"><EditableField type="number" value={m.minImpressionsCharge} onChange={(e) => mut(i, {minImpressionsCharge: toNum(e.target.value)})} isEditing={editingField===`${m.id}-minImp`} onStartEdit={()=>setEditingField(`${m.id}-minImp`)} onEndEdit={()=>setEditingField(null)}/></LabeledField> <LabeledField label="Costo de Postura"><div className="flex items-center gap-2"><EditableField type="number" value={m.setupCost.price} onChange={(e) => mut(i, {setupCost: {...m.setupCost, price: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-setup`} onStartEdit={()=>setEditingField(`${m.id}-setup`)} onEndEdit={()=>setEditingField(null)}/><CostModeSelector value={m.setupCost.perInk} onChange={c => mut(i, {setupCost: {...m.setupCost, perInk: c}})} options={} /></div></LabeledField> <LabeledField label="Costo de Lavado"><div className="flex items-center gap-2"><EditableField type="number" value={m.washCost.price} onChange={(e) => mut(i, {washCost: {...m.washCost, price: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-wash`} onStartEdit={()=>setEditingField(`${m.id}-wash`)} onEndEdit={()=>setEditingField(null)}/><CostModeSelector value={m.washCost.perInk} onChange={c => mut(i, {washCost: {...m.washCost, perInk: c}})} options={} /></div></LabeledField> <LabeledField label="Costo por Millar"><div className="flex items-center gap-2"><EditableField type="number" value={m.impressionCost.pricePerThousand} onChange={(e) => mut(i, {impressionCost: {...m.impressionCost, pricePerThousand: toNum(e.target.value)}})} isEditing={editingField===`${m.id}-imp`} onStartEdit={()=>setEditingField(`${m.id}-imp`)} onEndEdit={()=>setEditingField(null)}/><CostModeSelector value={m.impressionCost.perInkPass} onChange={c => mut(i, {impressionCost: {...m.impressionCost, perInkPass: c}})} options={} /></div></LabeledField> <LabeledField label="Costo Extra por Frente y Dorso"><EditableField type="number" value={m.duplexChargePrice} onChange={(e) => mut(i, {duplexChargePrice: toNum(e.target.value)})} isEditing={editingField === `${m.id}-duplex`} onStartEdit={() => setEditingField(`${m.id}-duplex`)} onEndEdit={() => setEditingField(null)}/></LabeledField> </div> </div> <div> <div className="flex items-center justify-between mb-1"><h3 className="text-base text-white/90 font-semibold">Costos por Formato (Price Brackets)</h3><IconButton title="Añadir Tramo" onClick={() => addBracket(i)} className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300"><Plus size={16}/></IconButton></div> <div className="space-y-1 mt-2"> {(m.price_brackets??).map((b, bi) => ( <div key={bi} className="relative rounded-lg p-2 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-2 gap-x-4 gap-y-2 pr-8"> <LabeledField label="Tamaño Máx. (Ancho × Largo) en mm"><div className="flex items-center gap-2"><EditableField type="number" value={b.constraints.maxWid} onChange={(e)=>updBracket(i,bi,{constraints:{...b.constraints, maxWid:toNum(e.target.value)}})} isEditing={editingField===`${m.id}-b${bi}-wid`} onStartEdit={()=>setEditingField(`${m.id}-b${bi}-wid`)} onEndEdit={()=>setEditingField(null)} /><span className="text-white/50">×</span><EditableField type="number" value={b.constraints.maxLen} onChange={(e)=>updBracket(i,bi,{constraints:{...b.constraints, maxLen:toNum(e.target.value)}})} isEditing={editingField===`${m.id}-b${bi}-len`} onStartEdit={()=>setEditingField(`${m.id}-b${bi}-len`)} onEndEdit={()=>setEditingField(null)} /></div></LabeledField> <LabeledField label="Unidad y Precio"><div className="flex items-center gap-2"><EditableField type="select" value={b.sheetCost.unit} onChange={(e)=>updBracket(i,bi,{sheetCost:{...b.sheetCost, unit:e.target.value}})} options={[{value: "per_sheet", label: "por hoja"}, {value: "per_thousand", label: "por millar"}]} onEndEdit={()=>{}} /><EditableField type="number" value={b.sheetCost.value} onChange={(e)=>updBracket(i,bi,{sheetCost:{...b.sheetCost, value:toNum(e.target.value)}})} isEditing={editingField===`${m.id}-b${bi}-price`} onStartEdit={()=>setEditingField(`${m.id}-b${bi}-price`)} onEndEdit={()=>setEditingField(null)} /></div></LabeledField> </div> <IconButton title="Eliminar tramo" onClick={() => removeBracket(i, bi)} className="absolute top-1 right-1" colorClass="text-red-500 hover:text-red-400 opacity-50 hover:opacity-100"><Trash2 size={16}/></IconButton> </div> ))} {(m.price_brackets??).length === 0 && <div className="text-xs text-white/60 py-2 text-center bg-black/20 rounded-md">Sin tramos de precios definidos</div>} </div> </div> </div> ))} </div> </div> );
+    return (<div className="space-y-5 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Máquinas</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Máquina" onClick={addMachine} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20} /></button> </header> <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"> {items.map((m, i) => (<div key={m.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4 flex flex-col gap-4"> <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-3"> <EditableField value={m.name} onChange={(e) => mut(i, { name: e.target.value })} isEditing={editingField === `${m.id}-name`} onStartEdit={() => setEditingField(`${m.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg!font-semibold" /> <div className="flex items-center gap-1.5"> {m._dirty && (<><IconButton title="Deshacer" onClick={() => cancelCardChanges(i)}><RotateCcw size={18} /></IconButton><IconButton title="Guardar" onClick={() => saveCardChanges(i)} colorClass="text-green-400"><Upload size={18} /></IconButton></>)} <IconButton title="Eliminar" onClick={() => deleteMachine(i)} colorClass="text-red-500"><Trash2 size={18} /></IconButton> </div> </div> <div className="border-b border-gray-700 pb-4"> <h3 className="text-base font-semibold text-white/90 mb-3">Propiedades Físicas</h3> <div className="space-y-3"> <div className="grid grid-cols-2 gap-4"> <LabeledField label="Tipo de Máquina"><EditableField type="select" value={m.is_offset} onChange={(e) => mut(i, { is_offset: e.target.value === 'true' })} onEndEdit={() => { }} options={} /></LabeledField> <LabeledField label="Cuerpos de Impresión"><EditableField type="number" value={m.printingBodies} onChange={(e) => mut(i, { printingBodies: toNum(e.target.value) })} isEditing={editingField === `${m.id}-bodies`} onStartEdit={() => setEditingField(`${m.id}-bodies`)} onEndEdit={() => setEditingField(null)} /></LabeledField> </div> <LabeledField label="Márgenes (Pinza / Cola / Lados) en mm"><div className="grid grid-cols-3 gap-2"><EditableField type="number" placeholder="P" value={m.margins.clamp} onChange={(e) => mut(i, { margins: {...m.margins, clamp: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-mClamp`} onStartEdit={() => setEditingField(`${m.id}-mClamp`)} onEndEdit={() => setEditingField(null)} /><EditableField type="number" placeholder="C" value={m.margins.tail} onChange={(e) => mut(i, { margins: {...m.margins, tail: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-mTail`} onStartEdit={() => setEditingField(`${m.id}-mTail`)} onEndEdit={() => setEditingField(null)} /><EditableField type="number" placeholder="L" value={m.margins.sides} onChange={(e) => mut(i, { margins: {...m.margins, sides: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-mSides`} onStartEdit={() => setEditingField(`${m.id}-mSides`)} onEndEdit={() => setEditingField(null)} /></div></LabeledField> <div className="grid grid-cols-2 gap-4"> <LabeledField label="Tam. Mín. Pliego (Ancho x Largo) en mm"><div className="flex gap-2"><EditableField type="number" value={m.minSheetSize.width} onChange={(e) => mut(i, { minSheetSize: {...m.minSheetSize, width: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-minW`} onStartEdit={() => setEditingField(`${m.id}-minW`)} onEndEdit={() => setEditingField(null)} /><EditableField type="number" value={m.minSheetSize.length} onChange={(e) => mut(i, { minSheetSize: {...m.minSheetSize, length: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-minL`} onStartEdit={() => setEditingField(`${m.id}-minL`)} onEndEdit={() => setEditingField(null)} /></div></LabeledField> <LabeledField label="Tam. Máx. Pliego (Ancho x Largo) en mm"><div className="flex gap-2"><EditableField type="number" value={m.maxSheetSize.width} onChange={(e) => mut(i, { maxSheetSize: {...m.maxSheetSize, width: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-maxW`} onStartEdit={() => setEditingField(`${m.id}-maxW`)} onEndEdit={() => setEditingField(null)} /><EditableField type="number" value={m.maxSheetSize.length} onChange={(e) => mut(i, { maxSheetSize: {...m.maxSheetSize, length: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-maxL`} onStartEdit={() => setEditingField(`${m.id}-maxL`)} onEndEdit={() => setEditingField(null)} /></div></LabeledField> </div> </div> </div> <div className="border-b border-gray-700 pb-4"> <h3 className="text-base font-semibold text-white/90 mb-3">Reglas de Costeo</h3> <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"> <LabeledField label="Demasía (Pliegos Extra)"><div className="flex items-center gap-2"><EditableField type="number" value={m.overage.amount} onChange={(e) => mut(i, { overage: {...m.overage, amount: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-overage`} onStartEdit={() => setEditingField(`${m.id}-overage`)} onEndEdit={() => setEditingField(null)} /><CostModeSelector value={m.overage.perInk} onChange={c => mut(i, { overage: {...m.overage, perInk: c } })} options={} /></div></LabeledField> <LabeledField label="Mínimo de Impresión"><EditableField type="number" value={m.minImpressionsCharge} onChange={(e) => mut(i, { minImpressionsCharge: toNum(e.target.value) })} isEditing={editingField === `${m.id}-minImp`} onStartEdit={() => setEditingField(`${m.id}-minImp`)} onEndEdit={() => setEditingField(null)} /></LabeledField> <LabeledField label="Costo de Postura"><div className="flex items-center gap-2"><EditableField type="number" value={m.setupCost.price} onChange={(e) => mut(i, { setupCost: {...m.setupCost, price: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-setup`} onStartEdit={() => setEditingField(`${m.id}-setup`)} onEndEdit={() => setEditingField(null)} /><CostModeSelector value={m.setupCost.perInk} onChange={c => mut(i, { setupCost: {...m.setupCost, perInk: c } })} options={} /></div></LabeledField> <LabeledField label="Costo de Lavado"><div className="flex items-center gap-2"><EditableField type="number" value={m.washCost.price} onChange={(e) => mut(i, { washCost: {...m.washCost, price: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-wash`} onStartEdit={() => setEditingField(`${m.id}-wash`)} onEndEdit={() => setEditingField(null)} /><CostModeSelector value={m.washCost.perInk} onChange={c => mut(i, { washCost: {...m.washCost, perInk: c } })} options={} /></div></LabeledField> <LabeledField label="Costo por Millar"><div className="flex items-center gap-2"><EditableField type="number" value={m.impressionCost.pricePerThousand} onChange={(e) => mut(i, { impressionCost: {...m.impressionCost, pricePerThousand: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-imp`} onStartEdit={() => setEditingField(`${m.id}-imp`)} onEndEdit={() => setEditingField(null)} /><CostModeSelector value={m.impressionCost.perInkPass} onChange={c => mut(i, { impressionCost: {...m.impressionCost, perInkPass: c } })} options={} /></div></LabeledField> <LabeledField label="Costo Extra por Frente y Dorso"><EditableField type="number" value={m.duplexChargePrice} onChange={(e) => mut(i, { duplexChargePrice: toNum(e.target.value) })} isEditing={editingField === `${m.id}-duplex`} onStartEdit={() => setEditingField(`${m.id}-duplex`)} onEndEdit={() => setEditingField(null)} /></LabeledField> </div> </div> <div> <div className="flex items-center justify-between mb-1"><h3 className="text-base text-white/90 font-semibold">Costos por Formato (Price Brackets)</h3><IconButton title="Añadir Tramo" onClick={() => addBracket(i)} className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300"><Plus size={16} /></IconButton></div> <div className="space-y-1 mt-2"> {(m.price_brackets??).map((b, bi) => (<div key={bi} className="relative rounded-lg p-2 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-2 gap-x-4 gap-y-2 pr-8"> <LabeledField label="Tamaño Máx. (Ancho × Largo) en mm"><div className="flex items-center gap-2"><EditableField type="number" value={b.constraints.maxWid} onChange={(e) => updBracket(i, bi, { constraints: {...b.constraints, maxWid: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-b${bi}-wid`} onStartEdit={() => setEditingField(`${m.id}-b${bi}-wid`)} onEndEdit={() => setEditingField(null)} /><span className="text-white/50">×</span><EditableField type="number" value={b.constraints.maxLen} onChange={(e) => updBracket(i, bi, { constraints: {...b.constraints, maxLen: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-b${bi}-len`} onStartEdit={() => setEditingField(`${m.id}-b${bi}-len`)} onEndEdit={() => setEditingField(null)} /></div></LabeledField> <LabeledField label="Unidad y Precio"><div className="flex items-center gap-2"><EditableField type="select" value={b.sheetCost.unit} onChange={(e) => updBracket(i, bi, { sheetCost: {...b.sheetCost, unit: e.target.value } })} options={[{ value: "per_sheet", label: "por hoja" }, { value: "per_thousand", label: "por millar" }]} onEndEdit={() => { }} /><EditableField type="number" value={b.sheetCost.value} onChange={(e) => updBracket(i, bi, { sheetCost: {...b.sheetCost, value: toNum(e.target.value) } })} isEditing={editingField === `${m.id}-b${bi}-price`} onStartEdit={() => setEditingField(`${m.id}-b${bi}-price`)} onEndEdit={() => setEditingField(null)} /></div></LabeledField> </div> <IconButton title="Eliminar tramo" onClick={() => removeBracket(i, bi)} className="absolute top-1 right-1" colorClass="text-red-500 hover:text-red-400 opacity-50 hover:opacity-100"><Trash2 size={16} /></IconButton> </div>))} {(m.price_brackets??).length === 0 && <div className="text-xs text-white/60 py-2 text-center bg-black/20 rounded-md">Sin tramos de precios definidos</div>} </div> </div> </div>))} </div> </div>);
 };
 
 // #################################################################################
-// ####### COMPONENTE 3: PÁGINA DE CONFIGURACIÓN DE MATERIALES #######
+// ####### PÁGINA DE CONFIGURACIÓN DE MATERIALES #######
 // #################################################################################
 const MaterialsAdminPage = ({ initialData, onSave }) => {
-    const [items, setItems] = useState(); const [msg, setMsg] = useState(""); const [editingField, setEditingField] = useState(null); const [newGramValue, setNewGramValue] = useState("");
-    useEffect(() => { setItems(initialData.map(m => ({...m, _dirty: false, _snapshot: undefined}))); setMsg(`${initialData.length} tipos de materiales cargados.`); },);
+    const [items, setItems] = useState();
+    const [msg, setMsg] = useState("");
+    const [editingField, setEditingField] = useState(null);
+    const [newGramValue, setNewGramValue] = useState("");
+    useEffect(() => { setItems(initialData.map(m => ({...m, _dirty: false, _snapshot: undefined }))); setMsg(`${initialData.length} tipos de materiales cargados.`); },);
     const toNum = (s) => { const n = Number(s); return Number.isFinite(n) && n > 0? n : null; };
     const mut = (i, patch) => setItems(p => p.map((x, ix) => ix === i? {...x,...patch, _dirty: true, _snapshot: x._snapshot?? JSON.parse(JSON.stringify(x)) } : x));
-    const mutGrade = (i, gi, patch) => { const grades = [...items[i].grades]; grades[gi] = {...grades[gi],...patch}; mut(i, {grades}); };
-    const mutSize = (i, gi, si, patch) => { const sizes = [...items[i].grades[gi].sizes]; sizes[si] = {...sizes[si],...patch}; mutGrade(i, gi, {sizes}); };
-    const addType = () => setItems(p=>, sizes:, isSpecialMaterial: false }], _dirty:true },...p]);
+    const mutGrade = (i, gi, patch) => { const grades = [...items[i].grades]; grades[gi] = {...grades[gi],...patch }; mut(i, { grades }); };
+    const mutSize = (i, gi, si, patch) => { const sizes = [...items[i].grades[gi].sizes]; sizes[si] = {...sizes[si],...patch }; mutGrade(i, gi, { sizes }); };
+    const addType = () => setItems(p =>, sizes:, isSpecialMaterial: false }], _dirty: true },...p]);
     const cancelCardChanges = (i) => { const snap = items[i]._snapshot; if (!snap) { setItems(p => p.filter((_, ix) => ix!== i)); return; } setItems(p => p.map((x, ix) => ix === i? {...JSON.parse(JSON.stringify(snap)), _dirty: false, _snapshot: undefined } : x)); };
     const saveCardChanges = async (i) => { const { _dirty, _snapshot,...payload } = items[i]; setMsg(`Guardando "${payload.name}"...`); await onSave('materials', payload); setMsg(`Material "${payload.name}" guardado.`); mut(i, { _dirty: false, _snapshot: undefined }); };
-    const deleteType = async (i) => { if (window.confirm("¿Eliminar tipo de material y todos sus gramajes?")) { setMsg(`Eliminando...`); await onSave('materials', { id: items[i].id, _delete: true }); setMsg(`Material eliminado.`); setItems(p => p.filter((_, ix) => ix!== i)); }};
-    const addGrade = (i) => { const grades =, sizes:, isSpecialMaterial: false},...(items[i].grades||)]; mut(i, {grades}); };
-    const delGrade = (i, gi) => { if (window.confirm("¿Eliminar este bloque de gramajes y tamaños?")) { const grades = items[i].grades.filter((_, gix) => gix!== gi); mut(i, {grades}); }};
-    const addSize = (i, gi) => { const sizes =.grades[gi].sizes||)]; mutGrade(i,gi,{sizes}); };
-    const delSize = (i, gi, si) => { const sizes = items[i].grades[gi].sizes.filter((_, six) => six!== si); mutGrade(i,gi,{sizes}); };
-    const addGramChip = (ti, gi, gram) => { const num = toNum(gram); if(num) { const g = items[ti].grades[gi]; const grams = Array.from(new Set([...g.grams, num])).sort((a,b)=>a-b); mutGrade(ti, gi, {grams}); } setNewGramValue(""); setEditingField(null); };
-    const removeGramChip = (ti, gi, gram) => { const g = items[ti].grades[gi]; const grams = g.grams.filter(gVal => gVal!== gram); mutGrade(ti, gi, {grams}); };
-    return ( <div className="space-y-4 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Materiales</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Tipo de Material" onClick={addType} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20}/></button> </header> <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"> {items.map((t, ti) => ( <div key={t.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between mb-2 pb-3 border-b border-gray-700"> <EditableField value={t.name} onChange={(e) => mut(ti, {name: e.target.value})} isEditing={editingField === `${t.id}-name`} onStartEdit={() => setEditingField(`${t.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg!font-semibold" placeholder="Nombre del Tipo" /> <div className="flex items-center gap-1.5"> {t._dirty && ( <><IconButton title="Deshacer" onClick={() => cancelCardChanges(ti)}><RotateCcw size={18} /></IconButton><IconButton title="Guardar" onClick={() => saveCardChanges(ti)} colorClass="text-green-400"><Upload size={18} /></IconButton></> )} <IconButton title="Eliminar tipo" onClick={()=>deleteType(ti)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> </div> <div className="mt-1 space-y-3"> <div className="flex items-center justify-between"><span className="text-sm text-white/80 font-semibold">Grupos de Tamaños / Gramajes</span><IconButton title="Añadir grupo" onClick={()=>addGrade(ti)} className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300"><Plus size={14}/></IconButton></div> {(t.grades||).map((g, gi) => ( <div key={g.id} className="relative rounded-lg border border-gray-700/50 bg-black/30 p-3"> <IconButton title="Eliminar este bloque" onClick={()=>delGrade(ti,gi)} colorClass="text-red-500/70 hover:text-red-500" className="absolute top-2 right-2"><Trash2 size={16}/></IconButton> <div className="flex items-start justify-between flex-wrap gap-2 mb-2"> <div className="flex-grow"> <label className="text-white/80 font-medium text-xs mb-1">Gramajes</label> <div className="flex flex-wrap items-center gap-2 mt-1 p-1 bg-black/20 rounded-md min-h-[34px]"> {g.grams.map(gram => (<span key={gram} className="inline-flex items-center gap-2 bg-slate-700 text-slate-100 rounded-full px-2.5 py-0.5 text-sm font-medium"> {gram}g <button onClick={() => removeGramChip(ti, gi, gram)}><X size={14}/></button> </span>))} {editingField === g.id? <input type="number" value={newGramValue} onChange={e => setNewGramValue(e.target.value)} onKeyDown={e => {if(e.key === 'Enter') addGramChip(ti, gi, newGramValue)}} onBlur={() => addGramChip(ti, gi, newGramValue)} placeholder="g" autoFocus className="bg-transparent w-16 focus:outline-none"/> : <button onClick={() => setEditingField(g.id)} className="p-1 rounded-full bg-slate-600 hover:bg-slate-500"><Plus size={12}/></button>} </div> </div> <label className="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer pt-5"><input type="checkbox" checked={g.isSpecialMaterial} onChange={() => mutGrade(ti, gi, { isSpecialMaterial:!g.isSpecialMaterial })} className="accent-cyan-500 w-4 h-4" /><span>Especial?</span></label> </div> <div className="space-y-2"> {(g.sizes||).map((s,si) => ( <div key={s.id} className="relative rounded-lg p-1.5 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-3 gap-3 pr-8"> <LabeledField label="Ancho (mm)"><EditableField type="number" value={s.width_mm} onChange={(e) => mutSize(ti,gi,si,{width_mm: toNum(e.target.value)})} isEditing={editingField === `${s.id}-w`} onStartEdit={() => setEditingField(`${s.id}-w`)} onEndEdit={() => setEditingField(null)} /></LabeledField> <LabeledField label="Largo (mm)"><EditableField type="number" value={s.length_mm} onChange={(e) => mutSize(ti,gi,si,{length_mm: toNum(e.target.value)})} isEditing={editingField === `${s.id}-l`} onStartEdit={() => setEditingField(`${s.id}-l`)} onEndEdit={() => setEditingField(null)} /></LabeledField> <LabeledField label="USD/Ton"><EditableField type="number" value={s.usd_per_ton} onChange={(e) => mutSize(ti,gi,si,{usd_per_ton: toNum(e.target.value)})} isEditing={editingField === `${s.id}-usd`} onStartEdit={() => setEditingField(`${s.id}-usd`)} onEndEdit={() => setEditingField(null)} /></LabeledField> </div> <IconButton title="Eliminar tamaño" onClick={()=>delSize(ti,gi,si)} className="absolute top-1/2 -translate-y-1/2 right-1" colorClass="text-red-500/60 hover:text-red-500"><Trash2 size={16}/></IconButton> </div> ))} <div className="flex justify-end"><button className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 mt-2 flex items-center gap-1" onClick={()=>addSize(ti,gi)}><Plus size={12}/> Añadir tamaño</button></div> </div> </div> ))} </div> </div> ))} </div> </div> );
+    const deleteType = async (i) => { if (window.confirm("¿Eliminar tipo de material y todos sus gramajes?")) { setMsg(`Eliminando...`); await onSave('materials', { id: items[i].id, _delete: true }); setMsg(`Material eliminado.`); setItems(p => p.filter((_, ix) => ix!== i)); } };
+    const addGrade = (i) => { const grades =, sizes:, isSpecialMaterial: false },...(items[i].grades ||)]; mut(i, { grades }); };
+    const delGrade = (i, gi) => { if (window.confirm("¿Eliminar este bloque de gramajes y tamaños?")) { const grades = items[i].grades.filter((_, gix) => gix!== gi); mut(i, { grades }); } };
+    const addSize = (i, gi) => { const sizes =.grades[gi].sizes ||)]; mutGrade(i, gi, { sizes }); };
+    const delSize = (i, gi, si) => { const sizes = items[i].grades[gi].sizes.filter((_, six) => six!== si); mutGrade(i, gi, { sizes }); };
+    const addGramChip = (ti, gi, gram) => { const num = toNum(gram); if (num) { const g = items[ti].grades[gi]; const grams = Array.from(new Set([...g.grams, num])).sort((a, b) => a - b); mutGrade(ti, gi, { grams }); } setNewGramValue(""); setEditingField(null); };
+    const removeGramChip = (ti, gi, gram) => { const g = items[ti].grades[gi]; const grams = g.grams.filter(gVal => gVal!== gram); mutGrade(ti, gi, { grams }); };
+    return (<div className="space-y-4 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Materiales</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Tipo de Material" onClick={addType} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20} /></button> </header> <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"> {items.map((t, ti) => (<div key={t.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between mb-2 pb-3 border-b border-gray-700"> <EditableField value={t.name} onChange={(e) => mut(ti, { name: e.target.value })} isEditing={editingField === `${t.id}-name`} onStartEdit={() => setEditingField(`${t.id}-name`)} onEndEdit={() => setEditingField(null)} className="!text-lg!font-semibold" placeholder="Nombre del Tipo" /> <div className="flex items-center gap-1.5"> {t._dirty && (<><IconButton title="Deshacer" onClick={() => cancelCardChanges(ti)}><RotateCcw size={18} /></IconButton><IconButton title="Guardar" onClick={() => saveCardChanges(ti)} colorClass="text-green-400"><Upload size={18} /></IconButton></>)} <IconButton title="Eliminar tipo" onClick={() => deleteType(ti)} colorClass="text-red-500"><Trash2 size={18} /></IconButton> </div> </div> <div className="mt-1 space-y-3"> <div className="flex items-center justify-between"><span className="text-sm text-white/80 font-semibold">Grupos de Tamaños / Gramajes</span><IconButton title="Añadir grupo" onClick={() => addGrade(ti)} className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300"><Plus size={14} /></IconButton></div> {(t.grades ||).map((g, gi) => (<div key={g.id} className="relative rounded-lg border border-gray-700/50 bg-black/30 p-3"> <IconButton title="Eliminar este bloque" onClick={() => delGrade(ti, gi)} colorClass="text-red-500/70 hover:text-red-500" className="absolute top-2 right-2"><Trash2 size={16} /></IconButton> <div className="flex items-start justify-between flex-wrap gap-2 mb-2"> <div className="flex-grow"> <label className="text-white/80 font-medium text-xs mb-1">Gramajes</label> <div className="flex flex-wrap items-center gap-2 mt-1 p-1 bg-black/20 rounded-md min-h-[34px]"> {g.grams.map(gram => (<span key={gram} className="inline-flex items-center gap-2 bg-slate-700 text-slate-100 rounded-full px-2.5 py-0.5 text-sm font-medium"> {gram}g <button onClick={() => removeGramChip(ti, gi, gram)}><X size={14} /></button> </span>))} {editingField === g.id? <input type="number" value={newGramValue} onChange={e => setNewGramValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addGramChip(ti, gi, newGramValue) }} onBlur={() => addGramChip(ti, gi, newGramValue)} placeholder="g" autoFocus className="bg-transparent w-16 focus:outline-none" /> : <button onClick={() => setEditingField(g.id)} className="p-1 rounded-full bg-slate-600 hover:bg-slate-500"><Plus size={12} /></button>} </div> </div> <label className="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer pt-5"><input type="checkbox" checked={g.isSpecialMaterial} onChange={() => mutGrade(ti, gi, { isSpecialMaterial:!g.isSpecialMaterial })} className="accent-cyan-500 w-4 h-4" /><span>Especial?</span></label> </div> <div className="space-y-2"> {(g.sizes ||).map((s, si) => (<div key={s.id} className="relative rounded-lg p-1.5 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-3 gap-3 pr-8"> <LabeledField label="Ancho (mm)"><EditableField type="number" value={s.width_mm} onChange={(e) => mutSize(ti, gi, si, { width_mm: toNum(e.target.value) })} isEditing={editingField === `${s.id}-w`} onStartEdit={() => setEditingField(`${s.id}-w`)} onEndEdit={() => setEditingField(null)} /></LabeledField> <LabeledField label="Largo (mm)"><EditableField type="number" value={s.length_mm} onChange={(e) => mutSize(ti, gi, si, { length_mm: toNum(e.target.value) })} isEditing={editingField === `${s.id}-l`} onStartEdit={() => setEditingField(`${s.id}-l`)} onEndEdit={() => setEditingField(null)} /></LabeledField> <LabeledField label="USD/Ton"><EditableField type="number" value={s.usd_per_ton} onChange={(e) => mutSize(ti, gi, si, { usd_per_ton: toNum(e.target.value) })} isEditing={editingField === `${s.id}-usd`} onStartEdit={() => setEditingField(`${s.id}-usd`)} onEndEdit={() => setEditingField(null)} /></LabeledField> </div> <IconButton title="Eliminar tamaño" onClick={() => delSize(ti, gi, si)} className="absolute top-1/2 -translate-y-1/2 right-1" colorClass="text-red-500/60 hover:text-red-500"><Trash2 size={16} /></IconButton> </div>))} <div className="flex justify-end"><button className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 mt-2 flex items-center gap-1" onClick={() => addSize(ti, gi)}><Plus size={12} /> Añadir tamaño</button></div> </div> </div>))} </div> </div>))} </div> </div>);
 };
 
 // #################################################################################
-// ####### COMPONENTE 4: PÁGINA DE CONFIGURACIÓN DE CORTES #######
+// ####### PÁGINA DE CONFIGURACIÓN DE CORTES #######
 // #################################################################################
 const CutsAdminPage = ({ initialData, onSave }) => {
-    const [groups, setGroups] = useState(); const [msg, setMsg] = useState(""); const [editingField, setEditingField] = useState(null);
-    useEffect(() => { setGroups(initialData.map(g => ({...g, _dirty: false, _snapshot: undefined}))); setMsg(`${initialData.length} grupos de cortes cargados.`); },);
-    const toNum = (s) => Number(s) || 0;
+    const [groups, setGroups] = useState();
+    const [msg, setMsg] = useState("");
+    const [editingField, setEditingField] = useState(null);
+    useEffect(() => { setGroups(initialData.map(g => ({...g, _dirty: false, _snapshot: undefined }))); setMsg(`${initialData.length} grupos de cortes cargados.`); },);
+    const toNum = (s) => Number(s) |
+
+| 0;
     const mut = (i, patch) => setGroups(p => p.map((x, ix) => ix === i? {...x,...patch, _dirty: true, _snapshot: x._snapshot?? JSON.parse(JSON.stringify(x)) } : x));
-    const mutRow = (i, ri, patch) => { const list = [...(groups[i].sheetSizes ||)]; list[ri] = {...list[ri],...patch}; mut(i,{sheetSizes:list}); };
-    const addGroup = () => setGroups(p =>, _dirty:true },...p]);
+    const mutRow = (i, ri, patch) => { const list = [...(groups[i].sheetSizes ||)]; list[ri] = {...list[ri],...patch }; mut(i, { sheetSizes: list }); };
+    const addGroup = () => setGroups(p =>, _dirty: true },...p]);
     const cancelCardChanges = (i) => { const snap = groups[i]._snapshot; if (!snap) { setGroups(p => p.filter((_, ix) => ix!== i)); return; } setGroups(p => p.map((x, ix) => ix === i? {...JSON.parse(JSON.stringify(snap)), _dirty: false, _snapshot: undefined } : x)); };
     const saveCardChanges = async (i) => { const { _dirty, _snapshot,...payload } = groups[i]; setMsg(`Guardando grupo...`); await onSave('cuts', payload); setMsg('Grupo guardado.'); mut(i, { _dirty: false, _snapshot: undefined }); };
-    const deleteGroup = async (i) => { if (window.confirm("¿Eliminar este grupo de cortes?")) { setMsg("Eliminando..."); await onSave('cuts', { id: groups[i].id, _delete: true }); setMsg("Grupo eliminado."); setGroups(p => p.filter((_, ix) => ix!== i)); }};
-    const addRow = (i) => mut(i,{sheetSizes:.sheetSizes||)]});
-    const delRow = (i, ri) => mut(i,{sheetSizes:(groups[i].sheetSizes||).filter((_,rx)=>rx!==ri)});
-    return ( <div className="space-y-4 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Cortes</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Grupo de Corte" onClick={addGroup} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20}/></button> </header> <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"> {groups.map((g,gi)=>( <div key={g.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 mb-3 border-b border-gray-700 pb-3"> <div className="flex items-center gap-2 text-base font-semibold"> <span>Papel Fábrica (mm):</span> <EditableField type="number" value={g.forPaperSize.width} onChange={e=>mut(gi,{forPaperSize:{...g.forPaperSize,width:toNum(e.target.value)}})} isEditing={editingField===`${g.id}-w`} onStartEdit={()=>setEditingField(`${g.id}-w`)} onEndEdit={()=>setEditingField(null)} className="!w-20"/> <span>×</span> <EditableField type="number" value={g.forPaperSize.length} onChange={e=>mut(gi,{forPaperSize:{...g.forPaperSize,length:toNum(e.target.value)}})} isEditing={editingField===`${g.id}-l`} onStartEdit={()=>setEditingField(`${g.id}-l`)} onEndEdit={()=>setEditingField(null)} className="!w-20"/> </div> <div className="flex items-center gap-1.5"> {g._dirty && <> <IconButton title="Deshacer" onClick={()=>cancelCardChanges(gi)}><RotateCcw size={18}/></IconButton> <IconButton title="Guardar" onClick={()=>saveCardChanges(gi)} colorClass="text-green-400"><Upload size={18}/></IconButton> </>} <IconButton title="Eliminar Grupo" onClick={()=>deleteGroup(gi)} colorClass="text-red-500"><Trash2 size={18}/></IconButton> </div> </div> <div className="flex items-center justify-between"><span className="text-white/80 font-semibold text-sm">Cortes Resultantes (pliegos) en mm</span><IconButton onClick={()=>addRow(gi)} title="Añadir corte" className="bg-cyan-600/30 text-cyan-300"><Plus size={14}/></IconButton></div> <div className="mt-2 space-y-2"> {(g.sheetSizes||).map((s,si)=>( <div key={s.id || si} className="relative rounded-lg p-1.5 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-12 gap-2 items-center pr-8"> <div className="col-span-5"><EditableField type="number" value={s.width} onChange={e=>mutRow(gi,si,{width:toNum(e.target.value)})} placeholder="Ancho" isEditing={editingField===`${g.id}-${si}-w`} onStartEdit={()=>setEditingField(`${g.id}-${si}-w`)} onEndEdit={()=>setEditingField(null)} /></div> <span className="text-white/50 col-span-2 text-center">×</span> <div className="col-span-5"><EditableField type="number" value={s.length} onChange={e=>mutRow(gi,si,{length:toNum(e.target.value)})} placeholder="Largo" isEditing={editingField===`${g.id}-${si}-l`} onStartEdit={()=>setEditingField(`${g.id}-${si}-l`)} onEndEdit={()=>setEditingField(null)} /></div> </div> <button onClick={()=>delRow(gi,si)} title="Borrar" className="absolute top-1/2 -translate-y-1/2 right-1 p-1.5 rounded-md text-red-500/60 hover:text-red-500"><Trash2 size={16}/></button> </div> ))} {(g.sheetSizes||).length===0 && <div className="text-xs text-center text-white/60 bg-black/20 rounded p-2 mt-2">Sin cortes definidos</div>} </div> </div> ))} </div> </div> );
+    const deleteGroup = async (i) => { if (window.confirm("¿Eliminar este grupo de cortes?")) { setMsg("Eliminando..."); await onSave('cuts', { id: groups[i].id, _delete: true }); setMsg("Grupo eliminado."); setGroups(p => p.filter((_, ix) => ix!== i)); } };
+    const addRow = (i) => mut(i, { sheetSizes:.sheetSizes ||)] });
+    const delRow = (i, ri) => mut(i, { sheetSizes: (groups[i].sheetSizes ||).filter((_, rx) => rx!== ri) });
+    return (<div className="space-y-4 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Cortes</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Grupo de Corte" onClick={addGroup} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20} /></button> </header> <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"> {groups.map((g, gi) => (<div key={g.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 mb-3 border-b border-gray-700 pb-3"> <div className="flex items-center gap-2 text-base font-semibold"> <span>Papel Fábrica (mm):</span> <EditableField type="number" value={g.forPaperSize.width} onChange={e => mut(gi, { forPaperSize: {...g.forPaperSize, width: toNum(e.target.value) } })} isEditing={editingField === `${g.id}-w`} onStartEdit={() => setEditingField(`${g.id}-w`)} onEndEdit={() => setEditingField(null)} className="!w-20" /> <span>×</span> <EditableField type="number" value={g.forPaperSize.length} onChange={e => mut(gi, { forPaperSize: {...g.forPaperSize, length: toNum(e.target.value) } })} isEditing={editingField === `${g.id}-l`} onStartEdit={() => setEditingField(`${g.id}-l`)} onEndEdit={() => setEditingField(null)} className="!w-20" /> </div> <div className="flex items-center gap-1.5"> {g._dirty && <> <IconButton title="Deshacer" onClick={() => cancelCardChanges(gi)}><RotateCcw size={18} /></IconButton> <IconButton title="Guardar" onClick={() => saveCardChanges(gi)} colorClass="text-green-400"><Upload size={18} /></IconButton> </>} <IconButton title="Eliminar Grupo" onClick={() => deleteGroup(gi)} colorClass="text-red-500"><Trash2 size={18} /></IconButton> </div> </div> <div className="flex items-center justify-between"><span className="text-white/80 font-semibold text-sm">Cortes Resultantes (pliegos) en mm</span><IconButton onClick={() => addRow(gi)} title="Añadir corte" className="bg-cyan-600/30 text-cyan-300"><Plus size={14} /></IconButton></div> <div className="mt-2 space-y-2"> {(g.sheetSizes ||).map((s, si) => (<div key={s.id |
+
+| si} className="relative rounded-lg p-1.5 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-12 gap-2 items-center pr-8"> <div className="col-span-5"><EditableField type="number" value={s.width} onChange={e => mutRow(gi, si, { width: toNum(e.target.value) })} placeholder="Ancho" isEditing={editingField === `${g.id}-${si}-w`} onStartEdit={() => setEditingField(`${g.id}-${si}-w`)} onEndEdit={() => setEditingField(null)} /></div> <span className="text-white/50 col-span-2 text-center">×</span> <div className="col-span-5"><EditableField type="number" value={s.length} onChange={e => mutRow(gi, si, { length: toNum(e.target.value) })} placeholder="Largo" isEditing={editingField === `${g.id}-${si}-l`} onStartEdit={() => setEditingField(`${g.id}-${si}-l`)} onEndEdit={() => setEditingField(null)} /></div> </div> <button onClick={() => delRow(gi, si)} title="Borrar" className="absolute top-1/2 -translate-y-1/2 right-1 p-1.5 rounded-md text-red-500/60 hover:text-red-500"><Trash2 size={16} /></button> </div>))} {(g.sheetSizes ||).length === 0 && <div className="text-xs text-center text-white/60 bg-black/20 rounded p-2 mt-2">Sin cortes definidos</div>} </div> </div>))} </div> </div>);
 };
 
 // #################################################################################
-// ####### COMPONENTE 5: PÁGINA DE AJUSTES GENERALES #######
+// ####### PÁGINA DE AJUSTES GENERALES #######
 // #################################################################################
 const GeneralSettingsPage = ({ initialData, onSave }) => {
     const = useState({ timeoutSeconds: 120, numberOfSolutions: 4, dollarRate: 40.5, penalties: { differentPressSheetPenalty: 10, differentFactorySheetPenalty: 10, differentMachinePenalty: 25 }, _dirty: false, _snapshot: null });
@@ -265,23 +269,28 @@ const GeneralSettingsPage = ({ initialData, onSave }) => {
     const [editingField, setEditingField] = useState(null);
 
     useEffect(() => {
-        const initialSettings = initialData || { timeoutSeconds: 120, numberOfSolutions: 4, dollarRate: 40.5, penalties: { differentPressSheetPenalty: 10, differentFactorySheetPenalty: 10, differentMachinePenalty: 25 }};
-        setSettings(s => ({...initialSettings, _dirty: false, _snapshot: JSON.parse(JSON.stringify(initialSettings))}));
+        const initialSettings = initialData |
+
+| { timeoutSeconds: 120, numberOfSolutions: 4, dollarRate: 40.5, penalties: { differentPressSheetPenalty: 10, differentFactorySheetPenalty: 10, differentMachinePenalty: 25 } };
+        setSettings(s => ({...initialSettings, _dirty: false, _snapshot: JSON.parse(JSON.stringify(initialSettings)) }));
         setMsg("Ajustes cargados.");
     },);
 
-    const handleSettingChange = (key, value) => setSettings(s => ({...s, [key]: Number(value) || 0, _dirty: true }));
-    const handlePenaltyChange = (key, value) => setSettings(s => ({...s, penalties: {...s.penalties, [key]: Number(value) || 0 }, _dirty: true }));
-    
-    const saveSettings = async () => { setMsg("Guardando..."); const { _dirty, _snapshot,...payload } = settings; await onSave('general_settings', payload); setMsg("Ajustes guardados."); setSettings(s => ({...s, _dirty: false, _snapshot: JSON.parse(JSON.stringify(payload))})); };
-    const cancelChanges = () => { setSettings(s => ({...s._snapshot, _dirty: false, _snapshot: s._snapshot})); setMsg("Cambios deshechos."); };
+    const handleSettingChange = (key, value) => setSettings(s => ({...s, [key]: Number(value) |
 
-    const LabeledSetting = ({ id, label, description, value, onChange }) => ( <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center border-b border-gray-700/50 py-3"> <div> <label className="font-semibold text-gray-200">{label}</label> <p className="text-sm text-gray-400">{description}</p> </div> <div className="md:text-right"> <EditableField type="number" value={value} onChange={e => onChange(e.target.value)} isEditing={editingField === id} onStartEdit={() => setEditingField(id)} onEndEdit={() => setEditingField(null)} className="!w-32 md:ml-auto" /> </div> </div> );
-    return ( <div className="p-4"> <header className="flex flex-wrap items-center gap-3 mb-6"> <h1 className="text-2xl font-bold mr-auto">Ajustes Generales</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} {settings._dirty && <div className="flex items-center gap-2"><IconButton onClick={cancelChanges} title="Deshacer cambios"><RotateCcw size={18}/></IconButton><IconButton onClick={saveSettings} title="Guardar cambios" colorClass="text-green-400"><Upload size={18}/></IconButton></div>} </header> <div className="max-w-4xl mx-auto space-y-8"> <div className="p-6 rounded-xl border border-gray-700 bg-slate-800/50"> <h2 className="text-lg font-bold mb-2">Parámetros del Optimizador</h2> <LabeledSetting id="timeout" label="Tiempo Máx. de Ejecución (s)" description="Segundos máximos para la búsqueda de soluciones." value={settings.timeoutSeconds} onChange={(v) => handleSettingChange('timeoutSeconds', v)}/> <LabeledSetting id="solutions" label="Número de Soluciones" description="Cantidad de gangings alternativos a generar." value={settings.numberOfSolutions} onChange={(v) => handleSettingChange('numberOfSolutions', v)}/> </div> <div className="p-6 rounded-xl border border-gray-700 bg-slate-800/50"> <h2 className="text-lg font-bold mb-2">Penalizaciones (%)</h2> <LabeledSetting id="pen-machine" label="Por Máquina Diferente" description="Penalización por usar más de una máquina." value={settings.penalties.differentMachinePenalty} onChange={(v) => handlePenaltyChange('differentMachinePenalty', v)} /> <LabeledSetting id="pen-press" label="Por Pliego Diferente" description="Penalización por usar más de un tamaño de pliego." value={settings.penalties.differentPressSheetPenalty} onChange={(v) => handlePenaltyChange('differentPressSheetPenalty', v)} /> <LabeledSetting id="pen-factory" label="Por Papel de Fábrica Diferente" description="Penalización por usar más de un papel de fábrica." value={settings.penalties.differentFactorySheetPenalty} onChange={(v) => handlePenaltyChange('differentFactorySheetPenalty', v)} /> </div> <div className="p-6 rounded-xl border border-gray-700 bg-slate-800/50"> <h2 className="text-lg font-bold mb-2">Finanzas</h2> <LabeledSetting id="dollar" label="Cotización del Dólar" description="Tipo de cambio para convertir costos." value={settings.dollarRate} onChange={(v) => handleSettingChange('dollarRate', v)} /> </div> </div> </div> );
+| 0, _dirty: true }));
+    const handlePenaltyChange = (key, value) => setSettings(s => ({...s, penalties: {...s.penalties, [key]: Number(value) |
+
+| 0 }, _dirty: true }));
+    const saveSettings = async () => { setMsg("Guardando..."); const { _dirty, _snapshot,...payload } = settings; await onSave('general_settings', payload); setMsg("Ajustes guardados."); setSettings(s => ({...s, _dirty: false, _snapshot: JSON.parse(JSON.stringify(payload)) })); };
+    const cancelChanges = () => { setSettings(s => ({...s._snapshot, _dirty: false, _snapshot: s._snapshot })); setMsg("Cambios deshechos."); };
+
+    const LabeledSetting = ({ id, label, description, value, onChange }) => (<div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center border-b border-gray-700/50 py-3"> <div> <label className="font-semibold text-gray-200">{label}</label> <p className="text-sm text-gray-400">{description}</p> </div> <div className="md:text-right"> <EditableField type="number" value={value} onChange={e => onChange(e.target.value)} isEditing={editingField === id} onStartEdit={() => setEditingField(id)} onEndEdit={() => setEditingField(null)} className="!w-32 md:ml-auto" /> </div> </div>);
+    return (<div className="p-4"> <header className="flex flex-wrap items-center gap-3 mb-6"> <h1 className="text-2xl font-bold mr-auto">Ajustes Generales</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} {settings._dirty && <div className="flex items-center gap-2"><IconButton onClick={cancelChanges} title="Deshacer cambios"><RotateCcw size={18} /></IconButton><IconButton onClick={saveSettings} title="Guardar cambios" colorClass="text-green-400"><Upload size={18} /></IconButton></div>} </header> <div className="max-w-4xl mx-auto space-y-8"> <div className="p-6 rounded-xl border border-gray-700 bg-slate-800/50"> <h2 className="text-lg font-bold mb-2">Parámetros del Optimizador</h2> <LabeledSetting id="timeout" label="Tiempo Máx. de Ejecución (s)" description="Segundos máximos para la búsqueda de soluciones." value={settings.timeoutSeconds} onChange={(v) => handleSettingChange('timeoutSeconds', v)} /> <LabeledSetting id="solutions" label="Número de Soluciones" description="Cantidad de gangings alternativos a generar." value={settings.numberOfSolutions} onChange={(v) => handleSettingChange('numberOfSolutions', v)} /> </div> <div className="p-6 rounded-xl border border-gray-700 bg-slate-800/50"> <h2 className="text-lg font-bold mb-2">Penalizaciones (%)</h2> <LabeledSetting id="pen-machine" label="Por Máquina Diferente" description="Penalización por usar más de una máquina." value={settings.penalties.differentMachinePenalty} onChange={(v) => handlePenaltyChange('differentMachinePenalty', v)} /> <LabeledSetting id="pen-press" label="Por Pliego Diferente" description="Penalización por usar más de un tamaño de pliego." value={settings.penalties.differentPressSheetPenalty} onChange={(v) => handlePenaltyChange('differentPressSheetPenalty', v)} /> <LabeledSetting id="pen-factory" label="Por Papel de Fábrica Diferente" description="Penalización por usar más de un papel de fábrica." value={settings.penalties.differentFactorySheetPenalty} onChange={(v) => handlePenaltyChange('differentFactorySheetPenalty', v)} /> </div> <div className="p-6 rounded-xl border border-gray-700 bg-slate-800/50"> <h2 className="text-lg font-bold mb-2">Finanzas</h2> <LabeledSetting id="dollar" label="Cotización del Dólar" description="Tipo de cambio para convertir costos." value={settings.dollarRate} onChange={(v) => handleSettingChange('dollarRate', v)} /> </div> </div> </div>);
 };
 
 // #################################################################################
-// ####### TAREA 4: PÁGINA DE COTIZACIÓN CON CARGA DE CSV #######
+// ####### PÁGINA DE COTIZACIÓN (ENTRADA DE TRABAJOS) #######
 // #################################################################################
 const JobsInputPage = ({ onOptimize, materialsData }) => {
     const [jobs, setJobs] = useState();
@@ -290,54 +299,37 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
     const { CSVReader } = useCSVReader();
 
     const toNum = (s) => { const n = Number(s); return Number.isFinite(n)? n : null; };
-    
     const addJob = () => {
         const lastJob = jobs;
-        const newJob = {
-            id: `job-${Date.now()}`,
-            name: `Trabajo Nuevo ${jobs.length + 1}`,
-            width: 148,
-            length: 210,
-            quantity: 1000,
-            bleed: 3,
-            rotatable: lastJob? lastJob.rotatable : true,
-            samePlatesForBack: lastJob? lastJob.samePlatesForBack : false,
-            material: lastJob? lastJob.material : { name: '', grammage: '' },
-            frontInks: lastJob? lastJob.frontInks : 4,
-            backInks: lastJob? lastJob.backInks : 0,
-        };
+        const newJob = { id: `job-${Date.now()}`, name: `Trabajo Nuevo ${jobs.length + 1}`, width: 148, length: 210, quantity: 1000, bleed: 3, rotatable: lastJob? lastJob.rotatable : true, samePlatesForBack: lastJob? lastJob.samePlatesForBack : false, material: lastJob? lastJob.material : { name: '', grammage: '' }, frontInks: lastJob? lastJob.frontInks : 4, backInks: lastJob? lastJob.backInks : 0, };
         setJobs(p => [newJob,...p]);
     };
-
     const removeJob = (id) => setJobs(p => p.filter(j => j.id!== id));
     const updateJob = (id, patch) => setJobs(p => p.map(j => j.id === id? {...j,...patch } : j));
-    
     const materialOptions = materialsData.map(m => ({ value: m.name, label: m.name }));
 
     const handleUploadAccepted = (results) => {
         setCsvError('');
         const requiredHeaders = ['name', 'width', 'length', 'quantity', 'bleed', 'material_name', 'grammage', 'front_inks', 'back_inks'];
         const headers = results.data;
-        
         const missingHeaders = requiredHeaders.filter(h =>!headers.includes(h));
         if (missingHeaders.length > 0) {
             setCsvError(`Error en el CSV: Faltan las siguientes columnas obligatorias: ${missingHeaders.join(', ')}`);
             return;
         }
-
         const newJobs =;
         for (let i = 1; i < results.data.length; i++) {
             const row = results.data[i];
             if (row.length < headers.length) continue;
-
             const jobData = headers.reduce((obj, header, index) => {
                 obj[header] = row[index];
                 return obj;
             }, {});
-
             const newJob = {
                 id: `job-csv-${Date.now()}-${i}`,
-                name: jobData.name || `Trabajo CSV ${i}`,
+                name: jobData.name |
+
+| `Trabajo CSV ${i}`,
                 width: toNum(jobData.width),
                 length: toNum(jobData.length),
                 quantity: toNum(jobData.quantity),
@@ -348,8 +340,9 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
                 frontInks: toNum(jobData.front_inks)?? 0,
                 backInks: toNum(jobData.back_inks)?? 0,
             };
+            if (!newJob.name ||!newJob.width ||!newJob.length ||!newJob.quantity ||!newJob.material.name |
 
-            if (!newJob.name ||!newJob.width ||!newJob.length ||!newJob.quantity ||!newJob.material.name || newJob.material.grammage === null) {
+| newJob.material.grammage === null) {
                 setCsvError(`Error en la fila ${i + 1}: Faltan datos obligatorios o tienen un formato incorrecto.`);
                 return;
             }
@@ -366,16 +359,12 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
                     <Plus size={20} /> Agregar Trabajo
                 </button>
             </header>
-
             <div className="bg-slate-800/50 border border-dashed border-gray-600 rounded-lg p-4">
-                <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><FileText size={20}/> Cargar Trabajos desde CSV</h2>
+                <h2 className="text-lg font-semibold mb-2 flex items-center gap-2"><FileText size={20} /> Cargar Trabajos desde CSV</h2>
                 <p className="text-sm text-gray-400 mb-4">
                     Arrastra un archivo CSV aquí o haz clic para seleccionarlo. Columnas requeridas: `name`, `width`, `length`, `quantity`, `bleed`, `material_name`, `grammage`, `front_inks`, `back_inks`.
                 </p>
-                <CSVReader
-                    onUploadAccepted={handleUploadAccepted}
-                    config={{ header: false, skipEmptyLines: true }}
-                >
+                <CSVReader onUploadAccepted={handleUploadAccepted} config={{ header: false, skipEmptyLines: true }}>
                     {({ getRootProps, acceptedFile, ProgressBar, getRemoveFileProps }) => (
                         <>
                             <div className="flex items-center gap-4">
@@ -386,18 +375,17 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
                                     {acceptedFile && (
                                         <>
                                             <span className="text-gray-300">{acceptedFile.name}</span>
-                                            <button {...getRemoveFileProps()} className="text-red-500 hover:text-red-400"><X size={16}/></button>
+                                            <button {...getRemoveFileProps()} className="text-red-500 hover:text-red-400"><X size={16} /></button>
                                         </>
                                     )}
                                 </div>
                             </div>
-                            <ProgressBar style={{height: '4px', backgroundColor: '#0891b2', marginTop: '8px', borderRadius: '2px'}} />
+                            <ProgressBar style={{ height: '4px', backgroundColor: '#0891b2', marginTop: '8px', borderRadius: '2px' }} />
                         </>
                     )}
                 </CSVReader>
                 {csvError && <p className="text-red-400 mt-3 text-sm">{csvError}</p>}
             </div>
-
             <div className="space-y-4">
                 {jobs.map(job => {
                     const selectedMaterial = materialsData.find(m => m.name === job.material.name);
@@ -443,9 +431,15 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
 const adaptApiResponse = (apiResult) => {
     const adaptLayout = (layout) => {
         if (!layout) return null;
-        layout.layoutId = layout.layout_id || layout.layoutId;
-        layout.sheetsToPrint = layout.net_sheets || layout.sheetsToPrint;
-        layout.pressSheetSize = layout.printing_sheet || layout.printingSheet;
+        layout.layoutId = layout.layout_id |
+
+| layout.layoutId;
+        layout.sheetsToPrint = layout.net_sheets |
+
+| layout.sheetsToPrint;
+        layout.pressSheetSize = layout.printing_sheet |
+
+| layout.printingSheet;
         if (layout.jobs_in_layout && typeof layout.jobs_in_layout === 'object' &&!Array.isArray(layout.jobs_in_layout)) {
             layout.jobsInLayout = Object.entries(layout.jobs_in_layout).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
         } else if (!layout.jobsInLayout) {
@@ -559,7 +553,9 @@ export default function App() {
                 const errorText = await response.text();
                 try {
                     const errorData = JSON.parse(errorText);
-                    throw new Error(errorData.details || 'Error en la API de imposición.');
+                    throw new Error(errorData.details |
+
+| 'Error en la API de imposición.');
                 } catch (jsonError) {
                     throw new Error(`Error del servidor (500). Revisa los logs de Vercel.`);
                 }
@@ -568,7 +564,9 @@ export default function App() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `imposicion_${quoteNumber || 'pliego'}.pdf`;
+            a.download = `imposicion_${quoteNumber |
+
+| 'pliego'}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -645,7 +643,9 @@ export default function App() {
             jobs: jobs.map(j => {
                 const materialConfig = config.materials.find(m => m.name === j.material.name);
                 const gradeConfig = materialConfig?.grades.find(g => g.grams.includes(j.material.grammage));
-                const materialId = gradeConfig?.id || null;
+                const materialId = gradeConfig?.id |
+
+| null;
                 return {
                     id: j.name.replace(/\s+/g, '-').toLowerCase(),
                     width: j.width,
@@ -657,7 +657,9 @@ export default function App() {
                         id: materialId,
                         name: j.material.name,
                         grammage: j.material.grammage,
-                        isSpecialMaterial: gradeConfig?.isSpecialMaterial || false,
+                        isSpecialMaterial: gradeConfig?.isSpecialMaterial |
+
+| false,
                         factorySizes: gradeConfig?.sizes?.map(s => ({ width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton })) ||
                     },
                     frontInks: j.frontInks,
