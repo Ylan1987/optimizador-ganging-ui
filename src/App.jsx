@@ -27,17 +27,13 @@ if (supabaseUrl && supabaseAnonKey) {
 // #################################################################################
 const EditableField = ({ value, onChange, placeholder, type = "text", onStartEdit, onEndEdit, isEditing, options, className = "" }) => {
     const handleKeyDown = (e) => {
-        if (e.key === 'Enter' |
-
-| e.key === 'Escape') {
+        if (e.key === 'Enter' || e.key === 'Escape') {
             (e.target).blur();
         }
     };
 
     const handleViewKeyDown = (e) => {
-        if (e.key === 'Enter' |
-
-| e.key === ' ') {
+        if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             onStartEdit();
         }
@@ -69,13 +65,9 @@ const EditableField = ({ value, onChange, placeholder, type = "text", onStartEdi
             onKeyDown={handleViewKeyDown}
             tabIndex={0}
             role="button"
-            aria-label={`Editar ${placeholder |
-
-| 'campo'}`}
+            aria-label={`Editar ${placeholder || 'campo'}`}
         >
-            {value |
-
-| <span className="text-white/40">{placeholder}</span>}
+            {value || <span className="text-white/40">{placeholder}</span>}
         </div>
     );
 };
@@ -244,9 +236,7 @@ const CutsAdminPage = ({ initialData, onSave }) => {
     const [msg, setMsg] = useState("");
     const [editingField, setEditingField] = useState(null);
     useEffect(() => { setGroups(initialData.map(g => ({...g, _dirty: false, _snapshot: undefined }))); setMsg(`${initialData.length} grupos de cortes cargados.`); },);
-    const toNum = (s) => Number(s) |
-
-| 0;
+    const toNum = (s) => Number(s) || 0;
     const mut = (i, patch) => setGroups(p => p.map((x, ix) => ix === i? {...x,...patch, _dirty: true, _snapshot: x._snapshot?? JSON.parse(JSON.stringify(x)) } : x));
     const mutRow = (i, ri, patch) => { const list = [...(groups[i].sheetSizes ||)]; list[ri] = {...list[ri],...patch }; mut(i, { sheetSizes: list }); };
     const addGroup = () => setGroups(p =>, _dirty: true },...p]);
@@ -255,9 +245,7 @@ const CutsAdminPage = ({ initialData, onSave }) => {
     const deleteGroup = async (i) => { if (window.confirm("¿Eliminar este grupo de cortes?")) { setMsg("Eliminando..."); await onSave('cuts', { id: groups[i].id, _delete: true }); setMsg("Grupo eliminado."); setGroups(p => p.filter((_, ix) => ix!== i)); } };
     const addRow = (i) => mut(i, { sheetSizes:.sheetSizes ||)] });
     const delRow = (i, ri) => mut(i, { sheetSizes: (groups[i].sheetSizes ||).filter((_, rx) => rx!== ri) });
-    return (<div className="space-y-4 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Cortes</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Grupo de Corte" onClick={addGroup} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20} /></button> </header> <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"> {groups.map((g, gi) => (<div key={g.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 mb-3 border-b border-gray-700 pb-3"> <div className="flex items-center gap-2 text-base font-semibold"> <span>Papel Fábrica (mm):</span> <EditableField type="number" value={g.forPaperSize.width} onChange={e => mut(gi, { forPaperSize: {...g.forPaperSize, width: toNum(e.target.value) } })} isEditing={editingField === `${g.id}-w`} onStartEdit={() => setEditingField(`${g.id}-w`)} onEndEdit={() => setEditingField(null)} className="!w-20" /> <span>×</span> <EditableField type="number" value={g.forPaperSize.length} onChange={e => mut(gi, { forPaperSize: {...g.forPaperSize, length: toNum(e.target.value) } })} isEditing={editingField === `${g.id}-l`} onStartEdit={() => setEditingField(`${g.id}-l`)} onEndEdit={() => setEditingField(null)} className="!w-20" /> </div> <div className="flex items-center gap-1.5"> {g._dirty && <> <IconButton title="Deshacer" onClick={() => cancelCardChanges(gi)}><RotateCcw size={18} /></IconButton> <IconButton title="Guardar" onClick={() => saveCardChanges(gi)} colorClass="text-green-400"><Upload size={18} /></IconButton> </>} <IconButton title="Eliminar Grupo" onClick={() => deleteGroup(gi)} colorClass="text-red-500"><Trash2 size={18} /></IconButton> </div> </div> <div className="flex items-center justify-between"><span className="text-white/80 font-semibold text-sm">Cortes Resultantes (pliegos) en mm</span><IconButton onClick={() => addRow(gi)} title="Añadir corte" className="bg-cyan-600/30 text-cyan-300"><Plus size={14} /></IconButton></div> <div className="mt-2 space-y-2"> {(g.sheetSizes ||).map((s, si) => (<div key={s.id |
-
-| si} className="relative rounded-lg p-1.5 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-12 gap-2 items-center pr-8"> <div className="col-span-5"><EditableField type="number" value={s.width} onChange={e => mutRow(gi, si, { width: toNum(e.target.value) })} placeholder="Ancho" isEditing={editingField === `${g.id}-${si}-w`} onStartEdit={() => setEditingField(`${g.id}-${si}-w`)} onEndEdit={() => setEditingField(null)} /></div> <span className="text-white/50 col-span-2 text-center">×</span> <div className="col-span-5"><EditableField type="number" value={s.length} onChange={e => mutRow(gi, si, { length: toNum(e.target.value) })} placeholder="Largo" isEditing={editingField === `${g.id}-${si}-l`} onStartEdit={() => setEditingField(`${g.id}-${si}-l`)} onEndEdit={() => setEditingField(null)} /></div> </div> <button onClick={() => delRow(gi, si)} title="Borrar" className="absolute top-1/2 -translate-y-1/2 right-1 p-1.5 rounded-md text-red-500/60 hover:text-red-500"><Trash2 size={16} /></button> </div>))} {(g.sheetSizes ||).length === 0 && <div className="text-xs text-center text-white/60 bg-black/20 rounded p-2 mt-2">Sin cortes definidos</div>} </div> </div>))} </div> </div>);
+    return (<div className="space-y-4 p-4"> <header className="flex flex-wrap items-center gap-3"> <h1 className="text-2xl font-bold mr-auto">Configuración de Cortes</h1> {msg && <span className="text-white/60 text-sm">{msg}</span>} <button title="Agregar Grupo de Corte" onClick={addGroup} className="p-2 rounded bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/40 transition-colors font-semibold"><Plus size={20} /></button> </header> <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"> {groups.map((g, gi) => (<div key={g.id} className="rounded-xl border border-gray-700 bg-slate-800/50 p-4"> <div className="flex items-center justify-between gap-2 mb-3 border-b border-gray-700 pb-3"> <div className="flex items-center gap-2 text-base font-semibold"> <span>Papel Fábrica (mm):</span> <EditableField type="number" value={g.forPaperSize.width} onChange={e => mut(gi, { forPaperSize: {...g.forPaperSize, width: toNum(e.target.value) } })} isEditing={editingField === `${g.id}-w`} onStartEdit={() => setEditingField(`${g.id}-w`)} onEndEdit={() => setEditingField(null)} className="!w-20" /> <span>×</span> <EditableField type="number" value={g.forPaperSize.length} onChange={e => mut(gi, { forPaperSize: {...g.forPaperSize, length: toNum(e.target.value) } })} isEditing={editingField === `${g.id}-l`} onStartEdit={() => setEditingField(`${g.id}-l`)} onEndEdit={() => setEditingField(null)} className="!w-20" /> </div> <div className="flex items-center gap-1.5"> {g._dirty && <> <IconButton title="Deshacer" onClick={() => cancelCardChanges(gi)}><RotateCcw size={18} /></IconButton> <IconButton title="Guardar" onClick={() => saveCardChanges(gi)} colorClass="text-green-400"><Upload size={18} /></IconButton> </>} <IconButton title="Eliminar Grupo" onClick={() => deleteGroup(gi)} colorClass="text-red-500"><Trash2 size={18} /></IconButton> </div> </div> <div className="flex items-center justify-between"><span className="text-white/80 font-semibold text-sm">Cortes Resultantes (pliegos) en mm</span><IconButton onClick={() => addRow(gi)} title="Añadir corte" className="bg-cyan-600/30 text-cyan-300"><Plus size={14} /></IconButton></div> <div className="mt-2 space-y-2"> {(g.sheetSizes ||).map((s, si) => (<div key={s.id || si} className="relative rounded-lg p-1.5 transition-colors border border-transparent hover:bg-black/20"> <div className="grid grid-cols-12 gap-2 items-center pr-8"> <div className="col-span-5"><EditableField type="number" value={s.width} onChange={e => mutRow(gi, si, { width: toNum(e.target.value) })} placeholder="Ancho" isEditing={editingField === `${g.id}-${si}-w`} onStartEdit={() => setEditingField(`${g.id}-${si}-w`)} onEndEdit={() => setEditingField(null)} /></div> <span className="text-white/50 col-span-2 text-center">×</span> <div className="col-span-5"><EditableField type="number" value={s.length} onChange={e => mutRow(gi, si, { length: toNum(e.target.value) })} placeholder="Largo" isEditing={editingField === `${g.id}-${si}-l`} onStartEdit={() => setEditingField(`${g.id}-${si}-l`)} onEndEdit={() => setEditingField(null)} /></div> </div> <button onClick={() => delRow(gi, si)} title="Borrar" className="absolute top-1/2 -translate-y-1/2 right-1 p-1.5 rounded-md text-red-500/60 hover:text-red-500"><Trash2 size={16} /></button> </div>))} {(g.sheetSizes ||).length === 0 && <div className="text-xs text-center text-white/60 bg-black/20 rounded p-2 mt-2">Sin cortes definidos</div>} </div> </div>))} </div> </div>);
 };
 
 // #################################################################################
@@ -269,19 +257,13 @@ const GeneralSettingsPage = ({ initialData, onSave }) => {
     const [editingField, setEditingField] = useState(null);
 
     useEffect(() => {
-        const initialSettings = initialData |
-
-| { timeoutSeconds: 120, numberOfSolutions: 4, dollarRate: 40.5, penalties: { differentPressSheetPenalty: 10, differentFactorySheetPenalty: 10, differentMachinePenalty: 25 } };
+        const initialSettings = initialData || { timeoutSeconds: 120, numberOfSolutions: 4, dollarRate: 40.5, penalties: { differentPressSheetPenalty: 10, differentFactorySheetPenalty: 10, differentMachinePenalty: 25 } };
         setSettings(s => ({...initialSettings, _dirty: false, _snapshot: JSON.parse(JSON.stringify(initialSettings)) }));
         setMsg("Ajustes cargados.");
     },);
 
-    const handleSettingChange = (key, value) => setSettings(s => ({...s, [key]: Number(value) |
-
-| 0, _dirty: true }));
-    const handlePenaltyChange = (key, value) => setSettings(s => ({...s, penalties: {...s.penalties, [key]: Number(value) |
-
-| 0 }, _dirty: true }));
+    const handleSettingChange = (key, value) => setSettings(s => ({...s, [key]: Number(value) || 0, _dirty: true }));
+    const handlePenaltyChange = (key, value) => setSettings(s => ({...s, penalties: {...s.penalties, [key]: Number(value) || 0 }, _dirty: true }));
     const saveSettings = async () => { setMsg("Guardando..."); const { _dirty, _snapshot,...payload } = settings; await onSave('general_settings', payload); setMsg("Ajustes guardados."); setSettings(s => ({...s, _dirty: false, _snapshot: JSON.parse(JSON.stringify(payload)) })); };
     const cancelChanges = () => { setSettings(s => ({...s._snapshot, _dirty: false, _snapshot: s._snapshot })); setMsg("Cambios deshechos."); };
 
@@ -327,9 +309,7 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
             }, {});
             const newJob = {
                 id: `job-csv-${Date.now()}-${i}`,
-                name: jobData.name |
-
-| `Trabajo CSV ${i}`,
+                name: jobData.name || `Trabajo CSV ${i}`,
                 width: toNum(jobData.width),
                 length: toNum(jobData.length),
                 quantity: toNum(jobData.quantity),
@@ -340,9 +320,7 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
                 frontInks: toNum(jobData.front_inks)?? 0,
                 backInks: toNum(jobData.back_inks)?? 0,
             };
-            if (!newJob.name ||!newJob.width ||!newJob.length ||!newJob.quantity ||!newJob.material.name |
-
-| newJob.material.grammage === null) {
+            if (!newJob.name ||!newJob.width ||!newJob.length ||!newJob.quantity ||!newJob.material.name || newJob.material.grammage === null) {
                 setCsvError(`Error en la fila ${i + 1}: Faltan datos obligatorios o tienen un formato incorrecto.`);
                 return;
             }
@@ -431,15 +409,9 @@ const JobsInputPage = ({ onOptimize, materialsData }) => {
 const adaptApiResponse = (apiResult) => {
     const adaptLayout = (layout) => {
         if (!layout) return null;
-        layout.layoutId = layout.layout_id |
-
-| layout.layoutId;
-        layout.sheetsToPrint = layout.net_sheets |
-
-| layout.sheetsToPrint;
-        layout.pressSheetSize = layout.printing_sheet |
-
-| layout.printingSheet;
+        layout.layoutId = layout.layout_id || layout.layoutId;
+        layout.sheetsToPrint = layout.net_sheets || layout.sheetsToPrint;
+        layout.pressSheetSize = layout.printing_sheet || layout.printingSheet;
         if (layout.jobs_in_layout && typeof layout.jobs_in_layout === 'object' &&!Array.isArray(layout.jobs_in_layout)) {
             layout.jobsInLayout = Object.entries(layout.jobs_in_layout).map(([id, qty]) => ({ id, quantityPerSheet: qty }));
         } else if (!layout.jobsInLayout) {
@@ -553,9 +525,7 @@ export default function App() {
                 const errorText = await response.text();
                 try {
                     const errorData = JSON.parse(errorText);
-                    throw new Error(errorData.details |
-
-| 'Error en la API de imposición.');
+                    throw new Error(errorData.details || 'Error en la API de imposición.');
                 } catch (jsonError) {
                     throw new Error(`Error del servidor (500). Revisa los logs de Vercel.`);
                 }
@@ -564,9 +534,7 @@ export default function App() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `imposicion_${quoteNumber |
-
-| 'pliego'}.pdf`;
+            a.download = `imposicion_${quoteNumber || 'pliego'}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -643,9 +611,7 @@ export default function App() {
             jobs: jobs.map(j => {
                 const materialConfig = config.materials.find(m => m.name === j.material.name);
                 const gradeConfig = materialConfig?.grades.find(g => g.grams.includes(j.material.grammage));
-                const materialId = gradeConfig?.id |
-
-| null;
+                const materialId = gradeConfig?.id || null;
                 return {
                     id: j.name.replace(/\s+/g, '-').toLowerCase(),
                     width: j.width,
@@ -657,9 +623,7 @@ export default function App() {
                         id: materialId,
                         name: j.material.name,
                         grammage: j.material.grammage,
-                        isSpecialMaterial: gradeConfig?.isSpecialMaterial |
-
-| false,
+                        isSpecialMaterial: gradeConfig?.isSpecialMaterial || false,
                         factorySizes: gradeConfig?.sizes?.map(s => ({ width: s.width_mm, length: s.length_mm, usdPerTon: s.usd_per_ton })) ||
                     },
                     frontInks: j.frontInks,
