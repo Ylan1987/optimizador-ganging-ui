@@ -22,11 +22,11 @@ const SearchResultCard = ({ quote, onSelect }) => (
 
 export const ImpositionPage = ({ supabase, onSelectQuote }) => {
     // CAMBIO #1: Corregida la sintaxis del useState.
-    const = useState('');
-    const = useDebounce(searchTerm, 500);
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
     // CAMBIO #1: Se refactoriza el estado para manejar la paginación. Se inicializa 'results' como un array vacío.
-    const = useState();
+    const [results, setResults]= useState();
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(0);
