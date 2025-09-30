@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 // CAMBIO #1: Se recomienda usar una librería de debounce para simplificar el código.
+// Asegúrate de instalarla con: npm install use-debounce
 import { useDebounce } from 'use-debounce';
 
 const PAGE_SIZE = 20;
@@ -24,7 +25,7 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
     const = useState('');
     const = useDebounce(searchTerm, 500);
 
-    // CAMBIO #1: Se refactoriza el estado para manejar la paginación.
+    // CAMBIO #1: Se refactoriza el estado para manejar la paginación. Se inicializa 'results' como un array vacío.
     const = useState();
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -42,9 +43,9 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
         const to = from + PAGE_SIZE - 1;
 
         let query = supabase
-          .from('quotes')
-          .select('*')
-          .order('created_at', { ascending: false });
+           .from('quotes')
+           .select('*')
+           .order('created_at', { ascending: false });
 
         if (term) {
             query = query.ilike('quote_number', `%${term}%`);
@@ -55,8 +56,8 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
         if (error) {
             setMessage(`Error al buscar: ${error.message}`);
             setResults(); // Limpiar resultados en caso de error
-        } else {
-            // Si es la primera página, reemplaza los datos. Si no, los añade.
+        } else if (data) {
+            // Si es la primera página, reemplaza los datos. Si no, los añade al final.
             setResults(prev => (pageToFetch === 0? data : [...prev,...data]));
             setHasMore(data.length === PAGE_SIZE);
             if (pageToFetch === 0 && data.length === 0) {
@@ -69,7 +70,7 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
 
     // CAMBIO #1: useEffect que reacciona a los cambios en el término de búsqueda (debounced).
     useEffect(() => {
-        setResults(); // Limpia los resultados anteriores
+        setResults(); // Limpia los resultados anteriores para la nueva búsqueda
         setPage(0);     // Resetea a la primera página
         setHasMore(true); // Asume que hay más resultados hasta que la API diga lo contrario
         fetchQuotes(debouncedSearchTerm, 0); // Inicia la búsqueda desde la página 0
@@ -78,20 +79,25 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
     // CAMBIO #1: Lógica del Intersection Observer para el scroll infinito.
     const observer = useRef();
     const lastElementRef = useCallback(node => {
-        if (isLoading) return;
-        if (observer.current) observer.current.disconnect();
+        if (isLoading) return; // No hacer nada si ya está cargando
+        if (observer.current) observer.current.disconnect(); // Desconectar el observador anterior
         observer.current = new IntersectionObserver(entries => {
             if (entries.isIntersecting && hasMore) {
                 // Si el último elemento es visible y hay más por cargar, pide la siguiente página.
-                setPage(prevPage => {
-                    const nextPage = prevPage + 1;
-                    fetchQuotes(debouncedSearchTerm, nextPage);
-                    return nextPage;
-                });
+                setPage(prevPage => prevPage + 1);
             }
         });
-        if (node) observer.current.observe(node);
+        if (node) observer.current.observe(node); // Observar el nuevo último elemento
+    }, [isLoading, hasMore]);
+
+    // CAMBIO #1: useEffect que se dispara cuando cambia el número de página para cargar más resultados.
+    useEffect(() => {
+        // Solo se ejecuta para las páginas siguientes a la inicial (que ya se carga con el otro useEffect).
+        if (page > 0) {
+            fetchQuotes(debouncedSearchTerm, page);
+        }
     },);
+
 
     return (
         <div className="p-6">
@@ -105,7 +111,7 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
                     placeholder="Escribe el número de presupuesto..."
                     className="w-full bg-slate-800 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:border-cyan-500"
                 />
-                {/* CAMBIO #1: El loader principal se muestra solo en la carga inicial de una búsqueda. */}
+                {/* El loader principal se muestra solo en la carga inicial de una búsqueda. */}
                 {isLoading && page === 0 && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" />}
             </div>
 
@@ -113,7 +119,7 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {results.map((quote, index) => {
-                    // CAMBIO #1: Asigna el ref al último elemento para disparar la carga de la siguiente página.
+                    // Asigna el ref al último elemento para disparar la carga de la siguiente página.
                     if (results.length === index + 1) {
                         return (
                             <div ref={lastElementRef} key={quote.id}>
@@ -125,7 +131,7 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
                 })}
             </div>
 
-            /* CAMBIO #1: Indicador de carga para cuando se hace scroll y se piden más datos. */
+            {/* Indicador de carga para cuando se hace scroll y se piden más datos. */}
             {isLoading && page > 0 && (
                 <div className="col-span-full text-center p-4 flex justify-center items-center">
                     <Loader2 className="animate-spin text-cyan-400 mr-2" />
@@ -133,7 +139,7 @@ export const ImpositionPage = ({ supabase, onSelectQuote }) => {
                 </div>
             )}
 
-            {/* CAMBIO #1: Mensaje de fin de resultados. */}
+            {/* Mensaje de fin de resultados. */}
             {!hasMore && results.length > 0 && (
                 <p className="col-span-full text-center text-gray-500 mt-8">Has llegado al final de los resultados.</p>
             )}
