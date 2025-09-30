@@ -227,8 +227,15 @@ export const Workspace = ({ apiResponse, onBack, onSaveQuote, onGenerateImpositi
 
             const result = await response.json();
 
-            if (!response.ok || !result.isValid) {
-                throw new Error(result.errorMessage || 'Error desconocido del servidor.');
+            if (!response.ok) {
+                // Si la respuesta no es 200 OK, intentamos leer el error.
+                const errorResult = await response.json();
+                throw new Error(errorResult.errorMessage || 'Error de comunicación con el servidor.');
+            }
+
+            if (!result.isValid) {
+                // Si la respuesta es 200 OK pero la validación falló, mostramos el mensaje específico.
+                throw new Error(result.errorMessage);
             }
             
             const imageDimensions = await getImageDimensions(result.previewImage);
